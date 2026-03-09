@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @default("admin")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model Bill {
+  id               Int      @id @default(autoincrement())
+  billNumber       String   @unique @map("bill_number")
+
+  // Customer Information
+  customerName     String   @map("customer_name")
+  travelDetails    String?  @map("travel_details")
+  gstin            String?
+
+  // Invoice Information
+  date             DateTime @default(now())
+  vehicleNumber    String?  @map("vehicle_number")
+  multipleDays     Boolean  @default(false) @map("multiple_days")
+  tripDate         DateTime? @map("trip_date")
+  tripEndDate      DateTime? @map("trip_end_date")
+
+  // Trip Timing
+  startingTime     String?  @map("starting_time")
+  closingTime      String?  @map("closing_time")
+  totalHours       Decimal? @map("total_hours") @db.Decimal(10, 2)
+
+  // Distance Information
+  startingKms      Decimal? @map("starting_kms") @db.Decimal(10, 2)
+  closingKms       Decimal? @map("closing_kms") @db.Decimal(10, 2)
+  totalKms         Decimal? @map("total_kms") @db.Decimal(10, 2)
+
+  // Charges
+  chargePerKm      Decimal? @map("charge_per_km") @db.Decimal(10, 2)
+  chargePerDay     Decimal? @map("charge_per_day") @db.Decimal(10, 2)
+  tollCharges      Decimal? @map("toll_charges") @db.Decimal(10, 2)
+  nightHaltCharges Decimal? @map("night_halt_charges") @db.Decimal(10, 2)
+  driverBata       Decimal? @map("driver_bata") @db.Decimal(10, 2)
+  permitCharges    Decimal? @map("permit_charges") @db.Decimal(10, 2)
+  otherExpenses    Decimal? @map("other_expenses") @db.Decimal(10, 2)
+
+  // Total
+  totalAmount      Decimal  @map("total_amount") @db.Decimal(12, 2)
+  rupeesInWords    String?  @map("rupees_in_words")
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("bills")
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  gstin     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("customers")
+}

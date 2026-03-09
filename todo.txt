@@ -1,0 +1,2 @@
+trip hours to be calculated including the day hours if multiple days.
+if multiple days. days rent to be multiplied with days count
