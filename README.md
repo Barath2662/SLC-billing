@@ -82,14 +82,29 @@ Open http://localhost:5173 in your browser.
 | GET | /api/bills/{billNumber}/pdf | Download PDF |
 | GET | /api/bills/dashboard | Dashboard stats |
 
+## Database Setup
+
+This project uses Prisma ORM with PostgreSQL. The database schema includes:
+
+- **Users**: Admin and staff user accounts with JWT authentication
+- **Bills**: Complete bill records with auto-generated bill numbers
+- **Bill Items**: Individual trip entries with distance and charges
+
+### Migrations
+
+- `20260309160902_init`: Initial schema setup
+- `20260309163343_update_bill_schema`: Bill schema refinement
+- `20260309164005_add_multiple_days_trip`: Support for multi-day trips
+
 ## Project Structure
 
 ```
-srii-lakshmi-cab-billing/
+SLC-billing/
 ├── backend/
 │   ├── prisma/
 │   │   ├── schema.prisma
-│   │   └── seed.js
+│   │   ├── seed.js
+│   │   └── migrations/
 │   └── src/
 │       ├── app.js
 │       ├── controllers/
@@ -98,6 +113,13 @@ srii-lakshmi-cab-billing/
 │       ├── middleware/
 │       │   └── authMiddleware.js
 │       ├── routes/
+│       │   ├── authRoutes.js
+│       │   └── billRoutes.js
+│       ├── services/
+│       │   ├── billNumberService.js
+│       │   └── pdfService.js
+│       └── utils/
+│           └── calculations.js
 │       │   ├── authRoutes.js
 │       │   └── billRoutes.js
 │       ├── services/
