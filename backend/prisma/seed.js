@@ -7,19 +7,30 @@ async function main() {
   const passwordHash = await bcrypt.hash('admin123', 10);
 
   await prisma.user.upsert({
-    where: { email: 'admin@sriilakshmicab.com' },
+    where: { username: 'sureshkumarn' },
     update: {},
     create: {
-      name: 'Admin',
-      email: 'admin@sriilakshmicab.com',
+      username: 'sureshkumarn',
+      name: 'Suresh Kumar N',
       passwordHash,
       role: 'admin',
     },
   });
 
-  console.log('Seed completed: Default admin user created');
-  console.log('Email: admin@sriilakshmicab.com');
-  console.log('Password: admin123');
+  await prisma.user.upsert({
+    where: { username: 'barath' },
+    update: {},
+    create: {
+      username: 'barath',
+      name: 'Barath',
+      passwordHash,
+      role: 'admin',
+    },
+  });
+
+  console.log('Seed completed: 2 admin users created');
+  console.log('  username: sureshkumarn  password: admin123');
+  console.log('  username: barath        password: admin123');
 }
 
 main()
@@ -30,3 +41,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

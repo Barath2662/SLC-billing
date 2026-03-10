@@ -5,43 +5,6 @@ const { validationResult } = require('express-validator');
 
 const prisma = new PrismaClient();
 
-const register = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { name, email, password } = req.body;
-
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return res.status(400).json({ error: 'User already exists with this email.' });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
-      data: { name, email, passwordHash, role: 'admin' },
-    });
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
-
-    res.status(201).json({
-      message: 'User registered successfully.',
-      token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
-    });
-  } catch (err) {
-    console.error('Register error:', err);
-    res.status(500).json({ error: 'Internal server error.' });
-  }
-};
-
 const login = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -49,20 +12,20 @@ const login = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { username } });
     if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password.' });
+      return res.status(401).json({ error: 'Invalid username or password.' });
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
-      return res.status(401).json({ error: 'Invalid email or password.' });
+      return res.status(401).json({ error: 'Invalid username or password.' });
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -70,7 +33,7 @@ const login = async (req, res) => {
     res.json({
       message: 'Login successful.',
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, username: user.username, role: user.role },
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -82,7 +45,7 @@ const getProfile = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      select: { id: true, name: true, username: true, role: true, createdAt: true },
     });
 
     if (!user) {
@@ -96,4 +59,32 @@ const getProfile = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getProfile };
+const updatePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current and new password are required.' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValid) {
+      return res.status(400).json({ error: 'Current password is incorrect.' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({ where: { id: req.user.id }, data: { passwordHash } });
+
+    res.json({ message: 'Password updated successfully.' });
+  } catch (err) {
+    console.error('Update password error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+module.exports = { login, getProfile, updatePassword };
+

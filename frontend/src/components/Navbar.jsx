@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FiMenu, FiX, FiHome, FiPlusCircle, FiSearch, FiLogOut, FiUser } from 'react-icons/fi';
+import { FiMenu, FiX, FiHome, FiPlusCircle, FiSearch, FiLogOut, FiUser, FiKey } from 'react-icons/fi';
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -51,12 +51,20 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* User & Logout */}
+          {/* User & Actions */}
           <div className="hidden md:flex items-center space-x-3">
             <div className="flex items-center space-x-1 text-white/80 text-sm">
               <FiUser />
-              <span>{user.name || 'Admin'}</span>
+              <span>{user.name || user.username || 'Admin'}</span>
             </div>
+            <Link
+              to="/change-password"
+              className="flex items-center space-x-1 text-white/80 hover:text-white text-sm transition-colors"
+              title="Change Password"
+            >
+              <FiKey />
+              <span>Change Password</span>
+            </Link>
             <button onClick={handleLogout} className="flex items-center space-x-1 text-white/80 hover:text-white text-sm transition-colors">
               <FiLogOut />
               <span>Logout</span>
@@ -88,8 +96,16 @@ export default function Navbar() {
             <div className="border-t border-white/20 pt-2 mt-2">
               <div className="flex items-center space-x-1 px-3 py-1 text-white/60 text-sm">
                 <FiUser />
-                <span>{user.name || 'Admin'}</span>
+                <span>{user.name || user.username || 'Admin'}</span>
               </div>
+              <Link
+                to="/change-password"
+                onClick={() => setOpen(false)}
+                className="flex items-center space-x-2 px-3 py-2 text-white/80 hover:text-white text-sm w-full"
+              >
+                <FiKey />
+                <span>Change Password</span>
+              </Link>
               <button onClick={handleLogout} className="flex items-center space-x-2 px-3 py-2 text-white/80 hover:text-white text-sm w-full">
                 <FiLogOut />
                 <span>Logout</span>

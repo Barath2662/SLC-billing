@@ -7,6 +7,7 @@ import CreateBill from './pages/CreateBill';
 import SearchBills from './pages/SearchBills';
 import EditBill from './pages/EditBill';
 import ViewBill from './pages/ViewBill';
+import ChangePassword from './pages/ChangePassword';
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('token');
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/search-bills" element={<ProtectedRoute><SearchBills /></ProtectedRoute>} />
         <Route path="/edit-bill/:billNumber" element={<ProtectedRoute><EditBill /></ProtectedRoute>} />
         <Route path="/view-bill/:billNumber" element={<ProtectedRoute><ViewBill /></ProtectedRoute>} />
+        <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>

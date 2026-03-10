@@ -27,6 +27,9 @@ export default function EditBill() {
         startingKms: b.startingKms ?? '',
         closingKms: b.closingKms ?? '',
         chargePerKm: b.chargePerKm ?? '',
+        chargePerHour: b.chargePerHour ?? '',
+        freeKms: b.freeKms ?? '',
+        chargeableKms: b.chargeableKms ?? 0,
         chargePerDay: b.chargePerDay ?? '',
         fuelCharges: b.fuelCharges ?? '',
         localTripCharges: b.localTripCharges ?? '',
@@ -36,6 +39,8 @@ export default function EditBill() {
         driverBata: b.driverBata ?? '',
         permitCharges: b.permitCharges ?? '',
         otherExpenses: b.otherExpenses ?? '',
+        advance: b.advance ?? '',
+        payableAmount: b.payableAmount ?? 0,
       });
     } catch (err) {
       toast.error('Bill not found');

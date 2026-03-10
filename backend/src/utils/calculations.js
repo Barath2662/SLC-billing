@@ -29,13 +29,19 @@ function calculateTotalHours(startingTime, closingTime, multipleDays = false, tr
   return Math.round(timeHours * 100) / 100;
 }
 
+function calculateChargeableKms(totalKms, freeKms) {
+  return Math.max(0, Number(totalKms || 0) - Number(freeKms || 0));
+}
+
 function calculateTotalAmount(data) {
   let total = 0;
   const n = (v) => v ? Number(v) : 0;
 
   const dayCount = data.multipleDays ? calculateDayCount(data.tripDate, data.tripEndDate) : 1;
+  const chargeableKms = calculateChargeableKms(data.totalKms, data.freeKms);
 
-  total += n(data.totalKms) * n(data.chargePerKm);
+  total += chargeableKms * n(data.chargePerKm);
+  total += n(data.totalHours) * n(data.chargePerHour);
   total += n(data.chargePerDay) * dayCount;
   total += n(data.tollCharges);
   total += n(data.nightHaltCharges);
@@ -46,9 +52,15 @@ function calculateTotalAmount(data) {
   return Math.round(total * 100) / 100;
 }
 
+function calculatePayableAmount(totalAmount, advance) {
+  return Math.max(0, Math.round((Number(totalAmount || 0) - Number(advance || 0)) * 100) / 100);
+}
+
 module.exports = {
   calculateTotalKms,
   calculateDayCount,
   calculateTotalHours,
+  calculateChargeableKms,
   calculateTotalAmount,
+  calculatePayableAmount,
 };

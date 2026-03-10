@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const { validationResult } = require('express-validator');
 const { generateBillNumber } = require('../services/billNumberService');
 const { generatePDF, generateInvoiceHTML, numberToWords } = require('../services/pdfService');
-const { calculateTotalKms, calculateDayCount, calculateTotalHours, calculateTotalAmount } = require('../utils/calculations');
+const { calculateTotalKms, calculateDayCount, calculateTotalHours, calculateChargeableKms, calculateTotalAmount, calculatePayableAmount } = require('../utils/calculations');
 
 const prisma = new PrismaClient();
 
@@ -21,14 +21,18 @@ const createBill = async (req, res) => {
     const multipleDays = data.multipleDays === true || data.multipleDays === 'true';
     const totalKms = calculateTotalKms(data.startingKms, data.closingKms);
     const totalHours = calculateTotalHours(data.startingTime, data.closingTime, multipleDays, data.tripDate, data.tripEndDate);
+    const chargeableKms = calculateChargeableKms(totalKms, data.freeKms);
 
     const billData = {
       ...data,
       multipleDays,
       totalKms,
       totalHours,
+      chargeableKms,
     };
     const totalAmount = data.totalAmount != null ? Number(data.totalAmount) : calculateTotalAmount(billData);
+    const advance = data.advance != null && data.advance !== '' ? Number(data.advance) : 0;
+    const payableAmount = calculatePayableAmount(totalAmount, advance);
     const rupeesInWords = data.rupeesInWords || numberToWords(totalAmount);
 
     const bill = await prisma.bill.create({
@@ -49,6 +53,9 @@ const createBill = async (req, res) => {
         closingKms: data.closingKms != null ? Number(data.closingKms) : null,
         totalKms,
         chargePerKm: data.chargePerKm != null ? Number(data.chargePerKm) : null,
+        chargePerHour: data.chargePerHour != null ? Number(data.chargePerHour) : null,
+        freeKms: data.freeKms != null ? Number(data.freeKms) : null,
+        chargeableKms,
         chargePerDay: data.chargePerDay != null ? Number(data.chargePerDay) : null,
         tollCharges: data.tollCharges != null ? Number(data.tollCharges) : null,
         nightHaltCharges: data.nightHaltCharges != null ? Number(data.nightHaltCharges) : null,
@@ -56,6 +63,8 @@ const createBill = async (req, res) => {
         permitCharges: data.permitCharges != null ? Number(data.permitCharges) : null,
         otherExpenses: data.otherExpenses != null ? Number(data.otherExpenses) : null,
         totalAmount,
+        advance: advance > 0 ? advance : null,
+        payableAmount,
         rupeesInWords,
       },
     });
@@ -152,8 +161,14 @@ const updateBill = async (req, res) => {
       updatedMultipleDays, updatedTripDate, updatedTripEndDate
     );
 
+    const updatedFreeKms = data.freeKms != null ? Number(data.freeKms) : Number(existing.freeKms || 0);
+    const chargeableKms = calculateChargeableKms(totalKms, updatedFreeKms);
+
     const billData = {
       chargePerKm: data.chargePerKm ?? existing.chargePerKm,
+      chargePerHour: data.chargePerHour ?? existing.chargePerHour,
+      freeKms: updatedFreeKms,
+      chargeableKms,
       chargePerDay: data.chargePerDay ?? existing.chargePerDay,
       tollCharges: data.tollCharges ?? existing.tollCharges,
       multipleDays: updatedMultipleDays,
@@ -167,6 +182,8 @@ const updateBill = async (req, res) => {
       otherExpenses: data.otherExpenses ?? existing.otherExpenses,
     };
     const totalAmount = data.totalAmount != null ? Number(data.totalAmount) : calculateTotalAmount(billData);
+    const advance = data.advance != null && data.advance !== '' ? Number(data.advance) : (existing.advance != null ? Number(existing.advance) : 0);
+    const payableAmount = calculatePayableAmount(totalAmount, advance);
     const rupeesInWords = data.rupeesInWords || numberToWords(totalAmount);
 
     const bill = await prisma.bill.update({
@@ -187,6 +204,9 @@ const updateBill = async (req, res) => {
         closingKms,
         totalKms,
         chargePerKm: data.chargePerKm != null ? Number(data.chargePerKm) : existing.chargePerKm,
+        chargePerHour: data.chargePerHour != null ? Number(data.chargePerHour) : existing.chargePerHour,
+        freeKms: updatedFreeKms,
+        chargeableKms,
         chargePerDay: data.chargePerDay != null ? Number(data.chargePerDay) : existing.chargePerDay,
         tollCharges: data.tollCharges != null ? Number(data.tollCharges) : existing.tollCharges,
         nightHaltCharges: data.nightHaltCharges != null ? Number(data.nightHaltCharges) : existing.nightHaltCharges,
@@ -194,6 +214,8 @@ const updateBill = async (req, res) => {
         permitCharges: data.permitCharges != null ? Number(data.permitCharges) : existing.permitCharges,
         otherExpenses: data.otherExpenses != null ? Number(data.otherExpenses) : existing.otherExpenses,
         totalAmount,
+        advance: advance > 0 ? advance : null,
+        payableAmount,
         rupeesInWords,
       },
     });
@@ -246,6 +268,58 @@ const searchBills = async (req, res) => {
     res.json({ bills, count: bills.length });
   } catch (err) {
     console.error('Search bills error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+// Filter bills by date range, customer name, bill number range
+const filterBills = async (req, res) => {
+  try {
+    const { dateFrom, dateTo, customerName, billFrom, billTo } = req.query;
+
+    const where = {};
+
+    if (dateFrom || dateTo) {
+      where.date = {};
+      if (dateFrom) where.date.gte = new Date(dateFrom);
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        where.date.lte = end;
+      }
+    }
+
+    if (customerName && customerName.trim()) {
+      where.customerName = { contains: customerName.trim(), mode: 'insensitive' };
+    }
+
+    if (billFrom || billTo) {
+      const allBills = await prisma.bill.findMany({
+        where,
+        orderBy: { billNumber: 'asc' },
+        select: { billNumber: true },
+      });
+
+      // Filter by bill number range lexicographically (works for YY-XXX format)
+      const filtered = allBills.filter(({ billNumber }) => {
+        if (billFrom && billNumber < billFrom) return false;
+        if (billTo && billNumber > billTo) return false;
+        return true;
+      });
+
+      const billNumbers = filtered.map((b) => b.billNumber);
+      where.billNumber = { in: billNumbers };
+    }
+
+    const bills = await prisma.bill.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+
+    res.json({ bills, count: bills.length });
+  } catch (err) {
+    console.error('Filter bills error:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
@@ -349,6 +423,7 @@ module.exports = {
   updateBill,
   deleteBill,
   searchBills,
+  filterBills,
   generateBillPDF,
   getInvoiceHTML,
   getDashboardStats,

@@ -66,7 +66,9 @@ function generateInvoiceHTML(bill) {
   const s = (val) => val || '';
   const fmt = (val) => (val != null && Number(val) !== 0) ? Number(val).toFixed(2) : '';
 
-  const chargePerKmAmt = Math.round(n(bill.totalKms) * n(bill.chargePerKm) * 100) / 100;
+  const chargeableKms = bill.chargeableKms != null ? n(bill.chargeableKms) : Math.max(0, n(bill.totalKms) - n(bill.freeKms));
+  const chargePerKmAmt = Math.round(chargeableKms * n(bill.chargePerKm) * 100) / 100;
+  const chargePerHourAmt = Math.round(n(bill.totalHours) * n(bill.chargePerHour) * 100) / 100;
 
   const dayCount = (() => {
     if (!bill.multipleDays || !bill.tripDate || !bill.tripEndDate) return 1;
@@ -95,7 +97,7 @@ function generateInvoiceHTML(bill) {
 
   const chargeRow = (labelHtml, val) => `
     <tr>
-      <td colspan="2" style="border:1px solid #000;padding:5px 10px;font-size:11px;">${labelHtml}</td>
+      <td colspan="2" style="border:1px solid #000;padding:8px 10px;font-size:11px;">${labelHtml}</td>
       ${tdAmt(val)}
     </tr>`;
 
@@ -116,13 +118,12 @@ function generateInvoiceHTML(bill) {
     body { font-family:Arial,sans-serif; font-size:12px; color:#000; background:#fff; }
     .bill {
       width: 190mm;
-      min-height: 277mm;
       margin: 0 auto;
       border: 2px solid #000;
       display: flex;
       flex-direction: column;
     }
-    .charges-wrap { flex: 1; }
+    .charges-wrap { }
     table { border-collapse: collapse; width: 100%; }
     td, th { vertical-align: middle; }
   </style>
@@ -133,17 +134,16 @@ function generateInvoiceHTML(bill) {
   <!-- HEADER -->
   <table style="border-bottom:2px solid #000;">
     <tr>
-      <td style="width:95px;padding:6px 8px;font-size:10px;font-weight:bold;border-right:1px solid #000;vertical-align:top;">
-        GSTIN :<br><br>
-        <span style="font-size:9px;font-weight:normal;letter-spacing:0.3px;">${s(bill.companyGstin)}</span>
-      </td>
-      <td style="text-align:center;padding:5px 14px 6px;">
+      <td style="text-align:center;padding:8px 14px;">
         <div style="font-size:24px;font-weight:900;letter-spacing:3px;font-family:'Arial Black',Arial,sans-serif;">SRII LAKSHMI CAB</div>
         <div style="font-size:9px;margin-top:2px;line-height:1.5;">
           5/12-AB, 5th Street East, Nanjappa Nagar, Boat house West, Singanallur,<br>
-          Coimbatore-641005. | Email : suresh.ctnlic@gmail.com
+          Coimbatore-641005. | Email : cabsriilakshmi@gmail.com
         </div>
-        <div style="font-size:11px;font-weight:bold;margin-top:2px;">Ph : 94439 14314, 80127 81549, 94433 63624</div>
+        <div style="font-size:11px;font-weight:bold;margin-top:2px;">Ph : 94439 14314, 80127 81549, 81482 51567</div>
+     <!--   <div style="font-size:10px;font-weight:bold;margin-top:3px;">
+          GSTIN :
+        </div> -->
       </td>
     </tr>
   </table>
@@ -154,12 +154,12 @@ function generateInvoiceHTML(bill) {
       <td style="padding:5px 10px;border-right:1px solid #000;vertical-align:top;">
         <div style="display:flex;align-items:flex-end;gap:4px;margin-bottom:4px;">
           <span style="font-size:11px;white-space:nowrap;">To. M/s</span>
-          <span style="flex:1;border-bottom:1px dotted #444;padding-bottom:1px;font-weight:bold;font-size:12px;">&nbsp;${s(bill.customerName)}</span>
+          <span style="flex:1;padding-bottom:1px;font-weight:bold;font-size:12px;">&nbsp;${s(bill.customerName)}</span>
         </div>
-        <div style="border-bottom:1px dotted #444;min-height:14px;margin-bottom:4px;">&nbsp;</div>
+        <div style="min-height:14px;margin-bottom:4px;"></div>
         <div style="display:flex;align-items:flex-end;gap:4px;">
-          <span style="font-size:10px;white-space:nowrap;">GSTIN</span>
-          <span style="flex:1;border-bottom:1px dotted #444;padding-bottom:1px;font-size:11px;font-weight:bold;">&nbsp;${s(bill.gstin)}</span>
+          <span style="font-size:10px;white-space:nowrap;">GSTIN :</span>
+          <span style="flex:1;padding-bottom:1px;font-size:11px;font-weight:bold;">&nbsp;${s(bill.gstin)}</span>
         </div>
       </td>
       <td style="width:38%;vertical-align:top;">
@@ -177,11 +177,10 @@ function generateInvoiceHTML(bill) {
   <table style="border-bottom:1px solid #000;">
     <tr>
       <td style="padding:5px 10px;border-right:1px solid #000;vertical-align:top;">
-        <div style="display:flex;align-items:flex-end;gap:4px;margin-bottom:4px;">
-          <span style="font-size:11px;white-space:nowrap;">Travels Details</span>
-          <span style="flex:1;border-bottom:1px dotted #444;padding-bottom:1px;font-weight:bold;font-size:12px;">&nbsp;${s(bill.travelDetails)}</span>
+        <div style="display:flex;align-items:flex-start;gap:4px;padding-bottom:3px;">
+          <span style="font-size:11px;white-space:nowrap;">Travel Details</span>
+          <span style="font-weight:bold;font-size:12px;word-break:break-word;">&nbsp;${s(bill.travelDetails)}</span>
         </div>
-        <div style="border-bottom:1px dotted #444;min-height:14px;">&nbsp;</div>
       </td>
       <td style="width:38%;vertical-align:top;">
         <table>
@@ -201,41 +200,45 @@ function generateInvoiceHTML(bill) {
     </colgroup>
 
     <tr>
-      <td style="border:1px solid #000;padding:4px 10px;font-size:11px;">
+      <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
         Closing Time ${dottedVal(to12hr(bill.closingTime), 72)}
       </td>
-      <td style="border:1px solid #000;padding:4px 10px;font-size:11px;">
+      <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
         Closing Kms ${dottedVal(fmt(bill.closingKms), 65)}
       </td>
       <td colspan="2" style="border:1px solid #000;padding:3px 4px;font-weight:bold;text-align:center;font-size:13px;">AMOUNT</td>
     </tr>
 
     <tr>
-      <td style="border:1px solid #000;padding:4px 10px;font-size:11px;">
+      <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
         Starting Time ${dottedVal(to12hr(bill.startingTime), 72)}
       </td>
-      <td style="border:1px solid #000;padding:4px 10px;font-size:11px;">
+      <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
         Starting Kms ${dottedVal(fmt(bill.startingKms), 65)}
       </td>
-      <td style="border:1px solid #000;padding:3px 4px;font-weight:bold;text-align:center;font-size:12px;">Rs.</td>
-      <td style="border:1px solid #000;padding:3px 4px;font-weight:bold;text-align:center;font-size:12px;">Ps.</td>
+      <td rowspan="2" style="border:1px solid #000;padding:3px 4px;font-weight:bold;text-align:center;font-size:12px;">Rs.</td>
+      <td rowspan="2" style="border:1px solid #000;padding:3px 4px;font-weight:bold;text-align:center;font-size:12px;">Ps.</td>
     </tr>
 
     <tr>
-      <td style="border:1px solid #000;padding:4px 10px;font-size:11px;">
+      <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
         Total Hours ${dottedVal(fmt(bill.totalHours), 80)}
       </td>
-      <td style="border:1px solid #000;padding:4px 10px;font-size:11px;">
+      <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
         Total Kms ${dottedVal(fmt(bill.totalKms), 80)}
       </td>
-      <td colspan="2" style="border:1px solid #000;"></td>
     </tr>
 
-    <tr><td colspan="4" style="border:1px solid #000;height:8px;"></td></tr>
+    <tr><td colspan="4" style="border:1px solid #000;height:10px;"></td></tr>
 
     ${chargeRow(
-      `Charge per Km Rs. ${dottedVal(fmt(bill.chargePerKm) || '', 50)}&nbsp; Ps. ${dottedVal('', 28)}&nbsp; &times; ${dottedVal(fmt(bill.totalKms) || '', 50)}&nbsp; Kms`,
+      `Charge per Km Rs. ${dottedVal(fmt(bill.chargePerKm) || '', 50)}&nbsp; Ps. ${dottedVal('', 28)}&nbsp; &times; ${dottedVal(chargeableKms > 0 ? fmt(chargeableKms) : (fmt(bill.totalKms) || ''), 50)}&nbsp; Kms${n(bill.freeKms) > 0 ? `&nbsp;&nbsp; Free Kms ${dottedVal(fmt(bill.freeKms), 45)}` : ''}`,
       chargePerKmAmt
+    )}
+
+    ${chargeRow(
+      `Charge per Hour Rs. ${dottedVal(fmt(bill.chargePerHour) || '', 50)}&nbsp; Ps. ${dottedVal('', 28)}&nbsp; &times; ${dottedVal(fmt(bill.totalHours) || '', 50)}&nbsp; Hrs`,
+      chargePerHourAmt
     )}
 
     ${chargeRow(
@@ -264,27 +267,36 @@ function generateInvoiceHTML(bill) {
     )}
 
     <tr>
-      <td colspan="2" style="border:1px solid #000;padding:6px 10px;font-size:14px;font-weight:bold;text-align:right;letter-spacing:2px;">TOTAL</td>
+      <td colspan="2" style="border:1px solid #000;padding:7px 10px;font-size:14px;font-weight:bold;text-align:right;letter-spacing:2px;">TOTAL</td>
       ${tdAmt(bill.totalAmount)}
+    </tr>
+
+    ${n(bill.advance) > 0 ? `
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:7px 10px;font-size:12px;text-align:right;">Less: Advance</td>
+      ${tdAmt(n(bill.advance))}
+    </tr>
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:7px 10px;font-size:14px;font-weight:bold;text-align:right;letter-spacing:2px;">PAYABLE AMOUNT</td>
+      ${tdAmt(n(bill.payableAmount) || Math.max(0, n(bill.totalAmount) - n(bill.advance)))}
+    </tr>
+    ` : ''}
+
+    <!-- FOOTER — same table, same colgroup → borders align perfectly -->
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:8px 10px;vertical-align:top;">
+        <div style="display:flex;align-items:flex-start;gap:4px;">
+          <span style="font-size:13px;font-weight:bold;white-space:nowrap;">Rupees :</span>
+          <span style="flex:1;font-weight:bold;font-style:italic;font-size:13px;">&nbsp;${s(bill.rupeesInWords)}</span>
+        </div>
+      </td>
+      <td colspan="2" style="border:1px solid #000;text-align:center;font-weight:bold;font-size:13px;font-style:italic;vertical-align:top;padding:0;">
+        <div style="border-bottom:1px solid #000;padding:8px 4px;">For SRII LAKSHMI CAB</div>
+        <div style="min-height:75px;"></div>
+      </td>
     </tr>
   </table>
   </div>
-
-  <!-- FOOTER -->
-  <table style="margin-top:auto;">
-    <tr>
-      <td style="padding:8px 10px;border-top:1px solid #000;border-right:1px solid #000;vertical-align:top;">
-        <div style="display:flex;align-items:flex-end;gap:4px;margin-bottom:5px;">
-          <span style="font-size:11px;white-space:nowrap;">Rupees</span>
-          <span style="flex:1;border-bottom:1px dotted #444;padding-bottom:1px;font-weight:bold;font-style:italic;font-size:11px;">&nbsp;${s(bill.rupeesInWords)}</span>
-        </div>
-        <div style="border-bottom:1px dotted #444;min-height:14px;">&nbsp;</div>
-      </td>
-      <td style="width:38%;text-align:center;font-weight:bold;font-size:13px;padding:14px 8px;font-style:italic;border-top:1px solid #000;">
-        For SRII LAKSHMI CAB
-      </td>
-    </tr>
-  </table>
 
 </div>
 </body>

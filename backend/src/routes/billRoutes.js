@@ -8,6 +8,7 @@ const {
   updateBill,
   deleteBill,
   searchBills,
+  filterBills,
   generateBillPDF,
   getInvoiceHTML,
   getDashboardStats,
@@ -27,6 +28,7 @@ router.get('/customers', getCustomers);
 
 // Search (must be before /:billNumber)
 router.get('/search', searchBills);
+router.get('/filter', filterBills);
 
 // CRUD
 router.post(

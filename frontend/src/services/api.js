@@ -32,8 +32,8 @@ api.interceptors.response.use(
 // Auth
 export const authAPI = {
   login: (data) => api.post('/auth/login', data),
-  register: (data) => api.post('/auth/register', data),
   getProfile: () => api.get('/auth/profile'),
+  updatePassword: (data) => api.put('/auth/update-password', data),
 };
 
 // Bills
@@ -44,6 +44,7 @@ export const billAPI = {
   update: (billNumber, data) => api.put(`/bills/update/${encodeURIComponent(billNumber)}`, data),
   delete: (billNumber) => api.delete(`/bills/${encodeURIComponent(billNumber)}`),
   search: (query) => api.get(`/bills/search?q=${encodeURIComponent(query)}`),
+  filter: (params) => api.get('/bills/filter', { params }),
   getPDF: (billNumber) => api.get(`/bills/${encodeURIComponent(billNumber)}/pdf`, { responseType: 'blob' }),
   getInvoiceHtml: (billNumber) => api.get(`/bills/${encodeURIComponent(billNumber)}/invoice`, { responseType: 'text' }),
   getDashboard: () => api.get('/bills/dashboard'),

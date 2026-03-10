@@ -3,7 +3,9 @@ import { useForm } from 'react-hook-form';
 import {
   calculateTotalKms,
   calculateTotalHours,
+  calculateChargeableKms,
   calculateTotalAmount,
+  calculatePayableAmount,
   numberToWords,
 } from '../utils/calculations';
 import { billAPI } from '../services/api';
@@ -51,13 +53,18 @@ export default function BillForm({ onSubmit, defaultValues, isEdit = false, load
       closingKms: '',
       totalKms: 0,
       chargePerKm: '',
+      chargePerHour: '',
+      freeKms: '',
+      chargeableKms: 0,
       chargePerDay: '',
       tollCharges: '',
-      nightHaltCharges: '',,
+      nightHaltCharges: '',
       driverBata: '',
       permitCharges: '',
       otherExpenses: '',
       totalAmount: 0,
+      advance: '',
+      payableAmount: 0,
       rupeesInWords: '',
     },
   });
@@ -94,24 +101,32 @@ export default function BillForm({ onSubmit, defaultValues, isEdit = false, load
       watchedFields.startingTime, watchedFields.closingTime,
       watchedFields.multipleDays, watchedFields.tripDate, watchedFields.tripEndDate
     );
+    const chargeableKms = calculateChargeableKms(totalKms, watchedFields.freeKms);
 
     setValue('totalKms', totalKms);
     setValue('totalHours', totalHours);
+    setValue('chargeableKms', chargeableKms);
 
     const totalAmount = calculateTotalAmount({
       ...watchedFields,
       totalKms,
       totalHours,
+      chargeableKms,
     });
+    const advance = parseFloat(watchedFields.advance) || 0;
+    const payableAmount = calculatePayableAmount(totalAmount, advance);
     setValue('totalAmount', totalAmount);
+    setValue('payableAmount', payableAmount);
     setValue('rupeesInWords', numberToWords(totalAmount));
   }, [
     watchedFields.startingKms, watchedFields.closingKms,
     watchedFields.startingTime, watchedFields.closingTime,
     watchedFields.multipleDays, watchedFields.tripDate, watchedFields.tripEndDate,
-    watchedFields.chargePerKm, watchedFields.chargePerDay,
+    watchedFields.chargePerKm, watchedFields.chargePerHour, watchedFields.freeKms,
+    watchedFields.chargePerDay,
     watchedFields.tollCharges, watchedFields.nightHaltCharges, watchedFields.driverBata,
     watchedFields.permitCharges, watchedFields.otherExpenses,
+    watchedFields.advance,
     setValue,
   ]);
 
@@ -231,7 +246,10 @@ export default function BillForm({ onSubmit, defaultValues, isEdit = false, load
           Charges
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InputField label="Free Kms" name="freeKms" type="number" placeholder="0" register={register} errors={errors} />
+          <InputField label="Chargeable Kms" name="chargeableKms" type="number" readOnly register={register} errors={errors} />
           <InputField label="Charge per Km (₹)" name="chargePerKm" type="number" placeholder="0.00" register={register} errors={errors} />
+          <InputField label="Charge per Hour (₹)" name="chargePerHour" type="number" placeholder="0.00" register={register} errors={errors} />
           <InputField label="Charge per Day (₹)" name="chargePerDay" type="number" placeholder="0.00" register={register} errors={errors} />
         </div>
       </div>
@@ -259,6 +277,25 @@ export default function BillForm({ onSubmit, defaultValues, isEdit = false, load
               type="number"
               {...register('totalAmount')}
               className="input-field text-2xl font-bold text-primary-900 bg-white"
+              readOnly
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-primary-900 mb-1">Advance (₹)</label>
+            <input
+              type="number"
+              {...register('advance')}
+              className="input-field"
+              placeholder="0.00"
+              step="any"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-primary-900 mb-1">Payable Amount (₹)</label>
+            <input
+              type="number"
+              {...register('payableAmount')}
+              className="input-field text-2xl font-bold text-green-700 bg-white"
               readOnly
             />
           </div>

@@ -10,8 +10,9 @@ datasource db {
 
 model User {
   id           Int      @id @default(autoincrement())
+  username     String   @unique
   name         String
-  email        String   @unique
+  email        String?  @unique
   passwordHash String   @map("password_hash")
   role         String   @default("admin")
   createdAt    DateTime @default(now()) @map("created_at")
@@ -47,6 +48,9 @@ model Bill {
 
   // Charges
   chargePerKm      Decimal? @map("charge_per_km") @db.Decimal(10, 2)
+  chargePerHour    Decimal? @map("charge_per_hour") @db.Decimal(10, 2)
+  freeKms          Decimal? @map("free_kms") @db.Decimal(10, 2)
+  chargeableKms    Decimal? @map("chargeable_kms") @db.Decimal(10, 2)
   chargePerDay     Decimal? @map("charge_per_day") @db.Decimal(10, 2)
   tollCharges      Decimal? @map("toll_charges") @db.Decimal(10, 2)
   nightHaltCharges Decimal? @map("night_halt_charges") @db.Decimal(10, 2)
@@ -56,6 +60,8 @@ model Bill {
 
   // Total
   totalAmount      Decimal  @map("total_amount") @db.Decimal(12, 2)
+  advance          Decimal? @db.Decimal(12, 2)
+  payableAmount    Decimal? @map("payable_amount") @db.Decimal(12, 2)
   rupeesInWords    String?  @map("rupees_in_words")
 
   createdAt        DateTime @default(now()) @map("created_at")
