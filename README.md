@@ -1,23 +1,23 @@
-# Srii Lakshmi Cab - Billing System
+# Srii Lakshmi Cab — Billing System
 
 A responsive web application for Srii Lakshmi Cab to digitize the paper billing system.
 
 ## Features
 
-- **Authentication**: Secure login with JWT
-- **Create Bills**: Auto-generated bill numbers (SLC-0001, SLC-0002, ...)
-- **Search Bills**: Search by bill number, customer name, vehicle number
-- **Edit Bills**: Update existing bills with auto-recalculation
-- **Invoice PDF**: Generate, download, print, and share PDF invoices
-- **Dashboard**: Overview of total bills, monthly revenue, recent trips
-- **Responsive**: Works on desktop, tablet, and mobile browsers
-- **API-first**: Backend ready for future mobile app integration
+- **Authentication** — Secure login with JWT (username-based)
+- **Create Bills** — Auto-generated bill numbers in `YY-XXX` format (e.g. `26-001`), resets yearly
+- **Search & Filter Bills** — Text search by bill number, customer, vehicle; filter by date range, customer name, bill number range
+- **Edit Bills** — Update existing bills with auto-recalculation of totals
+- **Advance & Payable Amount** — Track advance paid and remaining payable amount
+- **Invoice PDF** — Generate, download, print, and share professional PDF invoices
+- **Dashboard** — Overview of total bills, monthly revenue, and recent trips
+- **Responsive** — Works on desktop, tablet, and mobile
 
 ## Tech Stack
 
-- **Frontend**: React.js + Vite + Tailwind CSS
+- **Frontend**: React 18 + Vite + Tailwind CSS
 - **Backend**: Node.js + Express.js + Prisma ORM
-- **Database**: PostgreSQL
+- **Database**: PostgreSQL (Supabase)
 - **PDF**: Puppeteer (HTML → PDF)
 - **Auth**: JWT + bcryptjs
 
@@ -26,81 +26,81 @@ A responsive web application for Srii Lakshmi Cab to digitize the paper billing 
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL database
-- npm or yarn
+- PostgreSQL database (local or Supabase)
+- npm
 
-### 1. Setup Database
-
-Create a PostgreSQL database:
-
-```sql
-CREATE DATABASE srii_lakshmi_cab;
-```
-
-### 2. Backend Setup
+### 1. Backend Setup
 
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env with your database credentials
+# Fill in your DATABASE_URL, JWT_SECRET, etc.
 
 npm install
-npx prisma migrate dev --name init
-npm run prisma:seed    # Creates default admin user
-npm run dev
+npx prisma migrate deploy
+npm run prisma:seed    # Creates default users
+npm run dev            # Starts on http://localhost:5000
 ```
 
-Default admin credentials:
-- Email: admin@sriilakshmicab.com
-- Password: admin123
+Default login credentials:
+- Username: `sureshkumarn` / Password: `admin123`
+- Username: `barath` / Password: `admin123`
 
-### 3. Frontend Setup
+### 2. Frontend Setup
 
 ```bash
 cd frontend
+cp .env.example .env.local
+# For local dev, VITE_API_URL can stay empty (proxy handles it)
+
 npm install
-npm run dev
+npm run dev            # Starts on http://localhost:5173
 ```
 
-### 4. Access
+## Environment Variables
 
-Open http://localhost:5173 in your browser.
+### `backend/.env`
+
+| Variable | Description |
+|----------|-------------|
+| `PORT` | Server port (default: `5000`) |
+| `DATABASE_URL` | Prisma connection string (pooled, use pgbouncer for Supabase) |
+| `DIRECT_URL` | Direct DB URL for migrations |
+| `JWT_SECRET` | Secret key for signing JWTs |
+| `JWT_EXPIRES_IN` | Token expiry duration (default: `7d`) |
+| `CORS_ORIGIN` | Comma-separated list of allowed frontend origins |
+
+### `frontend/.env.local`
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_URL` | Backend base URL for production (e.g. `https://your-backend.railway.app`). Leave empty for local dev. |
 
 ## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | /api/auth/login | Login |
-| POST | /api/auth/register | Register |
 | GET | /api/auth/profile | Get profile |
+| PUT | /api/auth/update-password | Change password |
 | POST | /api/bills/create | Create bill |
-| GET | /api/bills | List all bills |
-| GET | /api/bills/search?q={query} | Search bills |
-| GET | /api/bills/{billNumber} | Get bill |
+| GET | /api/bills | List all bills (paginated) |
+| GET | /api/bills/search?q={query} | Text search bills |
+| GET | /api/bills/filter | Filter bills by date/customer/bill range |
+| GET | /api/bills/dashboard | Dashboard stats |
+| GET | /api/bills/customers | Customer name autocomplete |
+| GET | /api/bills/{billNumber} | Get single bill |
 | PUT | /api/bills/update/{billNumber} | Update bill |
 | DELETE | /api/bills/{billNumber} | Delete bill |
-| GET | /api/bills/{billNumber}/pdf | Download PDF |
-| GET | /api/bills/dashboard | Dashboard stats |
-
-## Database Setup
-
-This project uses Prisma ORM with PostgreSQL. The database schema includes:
-
-- **Users**: Admin and staff user accounts with JWT authentication
-- **Bills**: Complete bill records with auto-generated bill numbers
-- **Bill Items**: Individual trip entries with distance and charges
-
-### Migrations
-
-- `20260309160902_init`: Initial schema setup
-- `20260309163343_update_bill_schema`: Bill schema refinement
-- `20260309164005_add_multiple_days_trip`: Support for multi-day trips
+| GET | /api/bills/{billNumber}/pdf | Download PDF invoice |
+| GET | /api/bills/{billNumber}/invoice | Get invoice HTML |
 
 ## Project Structure
 
 ```
 SLC-billing/
 ├── backend/
+│   ├── .env.example
 │   ├── prisma/
 │   │   ├── schema.prisma
 │   │   ├── seed.js
@@ -120,39 +120,45 @@ SLC-billing/
 │       │   └── pdfService.js
 │       └── utils/
 │           └── calculations.js
-│       │   ├── authRoutes.js
-│       │   └── billRoutes.js
-│       ├── services/
-│       │   ├── billNumberService.js
-│       │   └── pdfService.js
-│       └── utils/
-│           └── calculations.js
-├── frontend/
-│   ├── public/
-│   └── src/
-│       ├── App.jsx
-│       ├── main.jsx
-│       ├── components/
-│       │   ├── Navbar.jsx
-│       │   ├── BillForm.jsx
-│       │   └── BillTable.jsx
-│       ├── pages/
-│       │   ├── Login.jsx
-│       │   ├── Dashboard.jsx
-│       │   ├── CreateBill.jsx
-│       │   ├── SearchBills.jsx
-│       │   ├── EditBill.jsx
-│       │   └── ViewBill.jsx
-│       ├── services/
-│       │   └── api.js
-│       └── utils/
-│           └── calculations.js
-└── README.md
+└── frontend/
+    ├── .env.example
+    ├── vercel.json
+    └── src/
+        ├── App.jsx
+        ├── components/
+        │   ├── Navbar.jsx
+        │   ├── BillForm.jsx
+        │   └── BillTable.jsx
+        ├── pages/
+        │   ├── Login.jsx
+        │   ├── Dashboard.jsx
+        │   ├── CreateBill.jsx
+        │   ├── SearchBills.jsx
+        │   ├── EditBill.jsx
+        │   └── ViewBill.jsx
+        ├── services/
+        │   └── api.js
+        └── utils/
+            └── calculations.js
 ```
 
 ## Deployment
 
-- **Frontend**: Vercel or Netlify
-- **Backend**: Render or Railway
-- **Database**: Neon PostgreSQL or Supabase PostgreSQL
-# SLC-billing
+> ⚠️ The backend uses **Puppeteer** for PDF generation which requires Chromium and **cannot run on Vercel serverless**. Deploy the backend on Railway or Render.
+
+### Frontend → Vercel
+
+1. Set **Root Directory** to `frontend`
+2. Build command: `npm run build` | Output directory: `dist`
+3. Add environment variable: `VITE_API_URL=https://your-backend.railway.app`
+
+### Backend → Railway or Render
+
+1. Set all environment variables from `backend/.env.example`
+2. Set `CORS_ORIGIN=https://your-frontend.vercel.app`
+3. Start command: `node src/app.js`
+
+### Database → Supabase or Neon
+
+- Use the pooled URL for `DATABASE_URL` and the direct URL for `DIRECT_URL`
+- Run `npx prisma migrate deploy` after setting env vars
