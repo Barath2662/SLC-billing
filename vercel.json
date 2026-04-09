@@ -1,0 +1,19 @@
+{
+  "projects": {
+    "frontend": {
+      "root": "frontend",
+      "buildCommand": "npm run build",
+      "outputDirectory": "dist",
+      "framework": "vite"
+    },
+    "backend": {
+      "root": "backend",
+      "buildCommand": "npm install && npx prisma migrate deploy",
+      "startCommand": "npm start",
+      "framework": "nodejs"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
+  ]
+}
