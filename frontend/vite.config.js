@@ -10,8 +10,14 @@ export default defineConfig(({ mode }) => ({
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
+      '/_/backend': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/_\/backend/, ''),
+      },
     },
   },
-  // In production, VITE_API_URL should be your Railway/Render backend URL e.g. https://my-backend.railway.app
-  // Leave empty to use same-origin relative /api paths
+  // In production on Vercel:
+  // - Frontend is at / and requests go to /_/backend (handled by Vercel routing)
+  // - Set VITE_API_URL to /_/backend in frontend env
 }));

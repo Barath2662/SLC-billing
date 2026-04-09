@@ -1,19 +1,13 @@
 {
-  "projects": {
+  "experimentalServices": {
     "frontend": {
-      "root": "frontend",
-      "buildCommand": "npm run build",
-      "outputDirectory": "dist",
+      "entrypoint": "frontend",
+      "routePrefix": "/",
       "framework": "vite"
     },
     "backend": {
-      "root": "backend",
-      "buildCommand": "npm install && npx prisma migrate deploy",
-      "startCommand": "npm start",
-      "framework": "nodejs"
+      "entrypoint": "backend",
+      "routePrefix": "/_/backend"
     }
-  },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" }
-  ]
+  }
 }
