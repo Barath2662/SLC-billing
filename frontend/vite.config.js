@@ -10,14 +10,9 @@ export default defineConfig(({ mode }) => ({
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
-      '/_/backend': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/_\/backend/, ''),
-      },
     },
   },
-  // In production on Vercel:
-  // - Frontend is at / and requests go to /_/backend (handled by Vercel routing)
-  // - Set VITE_API_URL to /_/backend in frontend env
+  // In production:
+  // - Set VITE_API_URL env variable to your backend URL (e.g., https://your-backend.onrender.com)
+  // - Frontend will make requests to that URL
 }));
