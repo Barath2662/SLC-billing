@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const { formatHours } = require('../utils/calculations');
 
 function numberToWords(num) {
   if (num === 0) return 'Zero';
@@ -222,7 +223,7 @@ function generateInvoiceHTML(bill) {
 
     <tr>
       <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
-        Total Hours ${dottedVal(fmt(bill.totalHours), 80)}
+        Total Hours ${dottedVal(formatHours(bill.totalHours), 80)}
       </td>
       <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
         Total Kms ${dottedVal(fmt(bill.totalKms), 80)}
@@ -237,7 +238,7 @@ function generateInvoiceHTML(bill) {
     )}
 
     ${chargeRow(
-      `Charge per Hour Rs. ${dottedVal(fmt(bill.chargePerHour) || '', 50)}&nbsp; Ps. ${dottedVal('', 28)}&nbsp; &times; ${dottedVal(fmt(bill.totalHours) || '', 50)}&nbsp; Hrs`,
+      `Charge per Hour Rs. ${dottedVal(fmt(bill.chargePerHour) || '', 50)}&nbsp; Ps. ${dottedVal('', 28)}&nbsp; &times; ${dottedVal(formatHours(bill.totalHours) || '', 70)}`,
       chargePerHourAmt
     )}
 
@@ -284,15 +285,24 @@ function generateInvoiceHTML(bill) {
 
     <!-- FOOTER — same table, same colgroup → borders align perfectly -->
     <tr>
-      <td colspan="2" style="border:1px solid #000;padding:8px 10px;vertical-align:top;">
+      <td colspan="2" style="border:1px solid #000;padding:8px 10px 2px 10px;vertical-align:top;">
         <div style="display:flex;align-items:flex-start;gap:4px;">
           <span style="font-size:13px;font-weight:bold;white-space:nowrap;">Rupees :</span>
           <span style="flex:1;font-weight:bold;font-style:italic;font-size:13px;">&nbsp;${s(bill.rupeesInWords)}</span>
         </div>
+        <div style="border-top:1px solid #000;margin:8px 0 6px 0;"></div>
+        <div style="margin-top:0;font-size:11px;line-height:1.4;margin-bottom:0;">
+          <div style="font-weight:bold;margin-bottom:2px;">BANK DETAILS</div>
+          <div><b>ACCOUNT HOLDER:</b> SRII LAKSHMI CAB</div>
+          <div><b>Account number:</b> 35530200000638</div>
+          <div><b>Bank name:</b> BANK OF BARODA</div>
+          <div><b>IFCS CODE:</b> BARB0TRICOI</div>
+          <div><b>Branch:</b> Trichy Road, Coimbatore</div>
+        </div>
       </td>
       <td colspan="2" style="border:1px solid #000;text-align:center;font-weight:bold;font-size:13px;font-style:italic;vertical-align:top;padding:0;">
         <div style="border-bottom:1px solid #000;padding:8px 4px;">For SRII LAKSHMI CAB</div>
-        <div style="min-height:75px;"></div>
+        <div style="min-height:120px;"></div>
       </td>
     </tr>
   </table>

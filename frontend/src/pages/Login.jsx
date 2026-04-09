@@ -18,7 +18,11 @@ export default function Login() {
       toast.success('Login successful!');
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Something went wrong');
+      if (err.response?.status === 401) {
+        toast.error('Invalid credentials.');
+      } else {
+        toast.error(err.response?.data?.error || 'Something went wrong');
+      }
     } finally {
       setLoading(false);
     }

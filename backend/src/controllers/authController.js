@@ -16,12 +16,12 @@ const login = async (req, res) => {
 
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user) {
-      return res.status(401).json({ error: 'Invalid username or password.' });
+      return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
-      return res.status(401).json({ error: 'Invalid username or password.' });
+      return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
     const token = jwt.sign(

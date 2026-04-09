@@ -56,6 +56,15 @@ function calculatePayableAmount(totalAmount, advance) {
   return Math.max(0, Math.round((Number(totalAmount || 0) - Number(advance || 0)) * 100) / 100);
 }
 
+function formatHours(decimalHours) {
+  if (!decimalHours || decimalHours === 0) return '0';
+  const hours = Math.floor(Number(decimalHours));
+  const mins = Math.round((Number(decimalHours) - hours) * 60);
+  if (hours === 0) return `${mins} mins`;
+  if (mins === 0) return `${hours} hrs`;
+  return `${hours} hrs ${mins} mins`;
+}
+
 module.exports = {
   calculateTotalKms,
   calculateDayCount,
@@ -63,4 +72,5 @@ module.exports = {
   calculateChargeableKms,
   calculateTotalAmount,
   calculatePayableAmount,
+  formatHours,
 };
