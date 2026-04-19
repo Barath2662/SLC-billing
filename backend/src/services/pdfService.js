@@ -1,4 +1,4 @@
-const PDFDocument = require('pdfkit');
+const puppeteer = require('puppeteer');
 const { formatHours } = require('../utils/calculations');
 
 function numberToWords(num) {
@@ -568,176 +568,26 @@ function generateInvoiceHTML(bill) {
 
 
 async function generatePDF(bill) {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({
-        size: 'A4',
-        margin: 40,
-        bufferPages: true
-      });
-
-      // Helper functions
-      const n = (v) => v != null ? Number(v) : 0;
-      const s = (val) => val || '';
-      const fmt = (val) => (val != null && Number(val) !== 0) ? Number(val).toFixed(2) : '';
-
-      function formatDate(date) {
-        if (!date) return '';
-        const d = new Date(date);
-        return d.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      }
-
-      function to12hr(time24) {
-        if (!time24) return '';
-        const [h, m] = time24.split(':').map(Number);
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        const h12 = h % 12 || 12;
-        return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
-      }
-
-      // Header
-      doc.fontSize(20).font('Helvetica-Bold').text('SRII LAKSHMI CAB', { align: 'center' });
-      doc.fontSize(9).font('Helvetica').text('5/12-AB, 5th Street East, Nanjappa Nagar, Boat house West, Singanallur,', { align: 'center' });
-      doc.fontSize(9).text('Coimbatore-641005. | Email : cabsriilakshmi@gmail.com', { align: 'center' });
-      doc.fontSize(10).font('Helvetica-Bold').text('Ph : 94439 14314, 80127 81549, 81482 51567', { align: 'center' });
-      doc.moveTo(40, doc.y + 5).lineTo(560, doc.y + 5).stroke();
-      doc.moveDown(0.3);
-
-      // Bill details section
-      doc.fontSize(11).font('Helvetica-Bold').text('To. M/s');
-      doc.fontSize(12).text(s(bill.customerName));
-      doc.fontSize(10).text(`GSTIN: ${s(bill.gstin)}`);
-      doc.moveUp(2.5);
-      doc.fontSize(14).font('Helvetica-Bold').text('CASH BILL / INVOICE', 350);
-      doc.fontSize(11).text(`Bill No: ${s(bill.billNumber)}`, 350);
-      doc.moveDown(0.5);
-
-      // Travel details
-      doc.fontSize(10).font('Helvetica').text(`Travel Details: ${s(bill.travelDetails)}`);
-      doc.fontSize(10).text(`Date: ${formatDate(bill.date)}`);
-      doc.fontSize(10).text(`Vehicle No: ${s(bill.vehicleNumber)}`);
-      
-      const tripDateDisplay = bill.multipleDays
-        ? `${formatDate(bill.tripDate)} – ${formatDate(bill.tripEndDate)}`
-        : formatDate(bill.tripDate);
-      doc.fontSize(10).text(`Trip Date: ${tripDateDisplay}`);
-      doc.moveDown(0.3);
-
-      // Times and KMs
-      doc.fontSize(10).font('Helvetica');
-      doc.text(`Starting Time: ${to12hr(bill.startingTime)}`);
-      doc.text(`Closing Time: ${to12hr(bill.closingTime)}`);
-      doc.text(`Starting Kms: ${fmt(bill.startingKms)}`);
-      doc.text(`Closing Kms: ${fmt(bill.closingKms)}`);
-      doc.text(`Total Kms: ${fmt(bill.totalKms)}`);
-      doc.text(`Total Hours: ${formatHours(bill.totalHours)}`);
-      doc.moveDown(0.3);
-      doc.moveTo(40, doc.y).lineTo(560, doc.y).stroke();
-      doc.moveDown(0.3);
-
-      // Charges table
-      const chargeableKms = bill.chargeableKms != null ? n(bill.chargeableKms) : Math.max(0, n(bill.totalKms) - n(bill.freeKms));
-      const chargePerKmAmt = Math.round(chargeableKms * n(bill.chargePerKm) * 100) / 100;
-      const chargePerHourAmt = Math.round(n(bill.totalHours) * n(bill.chargePerHour) * 100) / 100;
-      
-      const dayCount = (() => {
-        if (!bill.multipleDays || !bill.tripDate || !bill.tripEndDate) return 1;
-        const diff = Math.round((new Date(bill.tripEndDate) - new Date(bill.tripDate)) / (1000 * 60 * 60 * 24));
-        return Math.max(1, diff + 1);
-      })();
-      const chargePerDayAmt = Math.round(n(bill.chargePerDay) * dayCount * 100) / 100;
-
-      doc.fontSize(9).font('Helvetica');
-      
-      const addChargeLine = (label, amount) => {
-        doc.text(label, 50, undefined, { width: 380 });
-        doc.moveUp().text(`Rs. ${Math.floor(amount)}  Ps. ${String(Math.round((amount - Math.floor(amount)) * 100)).padStart(2, '0')}`, 450);
-        doc.moveDown();
-      };
-
-      if (n(bill.chargePerKm) > 0) {
-        addChargeLine(`Charge per Km Rs. ${fmt(bill.chargePerKm)} × ${chargeableKms > 0 ? fmt(chargeableKms) : fmt(bill.totalKms)} Kms${n(bill.freeKms) > 0 ? ` (Free Kms: ${fmt(bill.freeKms)})` : ''}`, chargePerKmAmt);
-      }
-      if (n(bill.chargePerHour) > 0) {
-        addChargeLine(`Charge per Hour Rs. ${fmt(bill.chargePerHour)} × ${formatHours(bill.totalHours)}`, chargePerHourAmt);
-      }
-      if (n(bill.chargePerDay) > 0) {
-        addChargeLine(`Charge per Day Rs. ${fmt(bill.chargePerDay)} × ${dayCount} days`, chargePerDayAmt);
-      }
-      if (n(bill.tollCharges) > 0) {
-        addChargeLine('Toll Charges', n(bill.tollCharges));
-      }
-      if (n(bill.nightHaltCharges) > 0) {
-        addChargeLine('Night Halt Charges', n(bill.nightHaltCharges));
-      }
-      if (n(bill.driverBata) > 0) {
-        addChargeLine('Driver Bata per Day', n(bill.driverBata));
-      }
-      if (n(bill.otherExpenses) > 0 || n(bill.permitCharges) > 0) {
-        addChargeLine(`Other Expenses / Permit Charges`, n(bill.otherExpenses) + n(bill.permitCharges));
-      }
-
-      doc.moveTo(40, doc.y).lineTo(560, doc.y).stroke();
-      doc.moveDown(0.2);
-
-      // Total
-      doc.fontSize(12).font('Helvetica-Bold');
-      const totalRs = Math.floor(bill.totalAmount);
-      const totalPs = String(Math.round((bill.totalAmount - totalRs) * 100)).padStart(2, '0');
-      doc.text('TOTAL', 50);
-      doc.moveUp().text(`Rs. ${totalRs}  Ps. ${totalPs}`, 450);
-      doc.moveDown();
-
-      // Payable amount if advance given
-      if (n(bill.advance) > 0) {
-        doc.fontSize(10).font('Helvetica');
-        doc.text('Less: Advance', 50);
-        const advRs = Math.floor(bill.advance);
-        const advPs = String(Math.round((bill.advance - advRs) * 100)).padStart(2, '0');
-        doc.moveUp().text(`Rs. ${advRs}  Ps. ${advPs}`, 450);
-        doc.moveDown();
-
-        doc.fontSize(12).font('Helvetica-Bold');
-        const payRs = Math.floor(bill.payableAmount || Math.max(0, bill.totalAmount - bill.advance));
-        const payPs = String(Math.round((bill.payableAmount - payRs) * 100)).padStart(2, '0');
-        doc.text('PAYABLE AMOUNT', 50);
-        doc.moveUp().text(`Rs. ${payRs}  Ps. ${payPs}`, 450);
-        doc.moveDown();
-      }
-
-      doc.moveTo(40, doc.y).lineTo(560, doc.y).stroke();
-      doc.moveDown(0.3);
-
-      // Rupees in words
-      doc.fontSize(10).font('Helvetica');
-      doc.text(`Rupees: ${s(bill.rupeesInWords)}`);
-      doc.moveDown(0.3);
-
-      // Bank details
-      doc.fontSize(9).font('Helvetica-Bold').text('BANK DETAILS');
-      doc.fontSize(9).font('Helvetica');
-      doc.text('ACCOUNT HOLDER: SRII LAKSHMI CAB');
-      doc.text('Account number: 35530200000638');
-      doc.text('Bank name: BANK OF BARODA');
-      doc.text('IFCS CODE: BARB0TRICOI');
-      doc.text('Branch: Trichy Road, Coimbatore');
-
-      doc.moveUp(5);
-      doc.fontSize(10).font('Helvetica-Bold').text('For SRII LAKSHMI CAB', 380);
-
-      // Collect PDF to buffer
-      const chunks = [];
-      doc.on('data', (chunk) => chunks.push(chunk));
-      doc.on('end', () => {
-        resolve(Buffer.concat(chunks));
-      });
-      doc.on('error', reject);
-
-      doc.end();
-    } catch (error) {
-      reject(error);
-    }
+  const html = generateInvoiceHTML(bill);
+  
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
+  
+  const page = await browser.newPage();
+  await page.setContent(html, { waitUntil: 'networkidle0' });
+  
+  const pdfBuffer = await page.pdf({
+    format: 'A4',
+    printBackground: true,
+    preferCSSPageSize: true,
+    margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
+  });
+  
+  await browser.close();
+  // Puppeteer v21+ returns Uint8Array; convert to Buffer so Express sends raw bytes
+  return Buffer.from(pdfBuffer);
 }
 
 module.exports = { generatePDF, generateInvoiceHTML, numberToWords };
