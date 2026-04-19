@@ -2,7 +2,7 @@ services:
   - type: web
     name: slc-billing-api
     runtime: node
-    buildCommand: rm -rf node_modules package-lock.json && npm install && npx prisma migrate deploy
+    buildCommand: rm -rf node_modules package-lock.json && npm install
     startCommand: npm start
     plan: free
     envVars:
