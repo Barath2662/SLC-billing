@@ -1,6 +1,40 @@
+const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');
 const puppeteer = require('puppeteer');
 const { formatHours } = require('../utils/calculations');
+
+const backendRoot = path.resolve(__dirname, '..', '..');
+const renderCacheDir = path.join(backendRoot, '.cache', 'puppeteer');
+if (process.env.RENDER === 'true') {
+  const configuredCache = process.env.PUPPETEER_CACHE_DIR || '';
+  if (!configuredCache || configuredCache.startsWith('/opt/render/.cache/')) {
+    process.env.PUPPETEER_CACHE_DIR = renderCacheDir;
+  }
+}
+
+let chromeInstallAttempted = false;
+
+const isChromeMissingError = (err) => {
+  const msg = err && err.message ? err.message : '';
+  return msg.includes('Could not find Chrome') || msg.includes('Browser was not found');
+};
+
+const installChromeIfMissing = () => {
+  if (chromeInstallAttempted) return;
+  chromeInstallAttempted = true;
+
+  const cacheDir = process.env.PUPPETEER_CACHE_DIR || renderCacheDir;
+  process.env.PUPPETEER_CACHE_DIR = cacheDir;
+  const installCommand = `npx puppeteer browsers install chrome --path "${cacheDir}"`;
+
+  console.warn(`[pdf] Chrome missing. Installing to ${cacheDir}`);
+  execSync(installCommand, {
+    cwd: backendRoot,
+    stdio: 'inherit',
+    env: { ...process.env, PUPPETEER_CACHE_DIR: cacheDir },
+  });
+};
 
 function numberToWords(num) {
   if (num === 0) return 'Zero';
@@ -608,11 +642,19 @@ async function generatePDF(bill) {
     try {
       browser = await puppeteer.launch(launchOptions);
     } catch (err) {
-      if (!launchOptions.executablePath) throw err;
-      const retryOptions = { ...launchOptions };
-      delete retryOptions.executablePath;
-      console.warn('[pdf] Launch failed with executablePath, retrying with auto-resolved browser');
-      browser = await puppeteer.launch(retryOptions);
+      if (isChromeMissingError(err)) {
+        installChromeIfMissing();
+        const retryAfterInstall = { ...launchOptions };
+        delete retryAfterInstall.executablePath;
+        browser = await puppeteer.launch(retryAfterInstall);
+      } else if (launchOptions.executablePath) {
+        const retryOptions = { ...launchOptions };
+        delete retryOptions.executablePath;
+        console.warn('[pdf] Launch failed with executablePath, retrying with auto-resolved browser');
+        browser = await puppeteer.launch(retryOptions);
+      } else {
+        throw err;
+      }
     }
 
     const page = await browser.newPage();

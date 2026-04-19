@@ -1,8 +1,13 @@
 const fs = require('fs');
+const path = require('path');
 const { execSync } = require('child_process');
 const puppeteer = require('puppeteer');
 
-const cacheDir = process.env.PUPPETEER_CACHE_DIR || '/opt/render/.cache/puppeteer';
+const backendRoot = path.resolve(__dirname, '..');
+const renderCacheDir = path.join(backendRoot, '.cache', 'puppeteer');
+const cacheDir = process.env.RENDER === 'true'
+  ? (process.env.PUPPETEER_CACHE_DIR || renderCacheDir)
+  : (process.env.PUPPETEER_CACHE_DIR || '/opt/render/.cache/puppeteer');
 process.env.PUPPETEER_CACHE_DIR = cacheDir;
 
 const hasChrome = () => {
@@ -20,7 +25,8 @@ if (hasChrome()) {
 }
 
 console.log('[chrome] Browser not found. Installing Chrome for Puppeteer...');
-execSync('npx puppeteer browsers install chrome', {
+execSync(`npx puppeteer browsers install chrome --path "${cacheDir}"`, {
+  cwd: backendRoot,
   stdio: 'inherit',
   env: { ...process.env, PUPPETEER_CACHE_DIR: cacheDir },
 });
