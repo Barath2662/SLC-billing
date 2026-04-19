@@ -43,26 +43,38 @@ export default function ViewBill() {
     }
 
     try {
-      // Use html2canvas to capture the iframe's bill element
+      // Use html2canvas to capture the iframe's bill element with low scale to avoid overlaps
       const canvas = await html2canvas(billElement, {
-        scale: 2,
+        scale: 1,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
+        allowTaint: true,
       });
 
-      // Create PDF from canvas
+      // A4 dimensions: 210mm x 297mm
+      // Convert canvas to image with proper sizing
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      const pdfWidth = 210; // A4 width in mm
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      // Calculate dimensions: canvas is pixel-based, we want to fit on A4 portrait
+      // The invoice is ~190mm wide, so we can use ~180mm with 15mm margins
+      const pdfWidth = 210; // A4 width
+      const pdfHeight = 297; // A4 height
+      const contentWidth = 180; // Width available for content (with margins)
+      const margin = (pdfWidth - contentWidth) / 2; // Center content
+
+      // Calculate height based on aspect ratio
+      const aspectRatio = canvas.height / canvas.width;
+      const contentHeight = contentWidth * aspectRatio;
 
       const pdf = new jsPDF({
-        orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+        orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
       });
 
-      pdf.addImage(imgData, 'JPEG', 5, 5, pdfWidth - 10, pdfHeight - 10);
+      // Add image centered, fitting within margins
+      pdf.addImage(imgData, 'JPEG', margin, 10, contentWidth, contentHeight);
 
       return pdf.output('blob');
     } catch (err) {
