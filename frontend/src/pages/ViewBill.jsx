@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FiEdit, FiDownload, FiPrinter, FiShare2, FiArrowLeft, FiTrash2 } from 'react-icons/fi';
 import html2pdf from 'html2pdf.js';
@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 export default function ViewBill() {
   const { billNumber } = useParams();
   const navigate = useNavigate();
+  const iframeRef = useRef(null);
   const [invoiceHtml, setInvoiceHtml] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -22,8 +23,11 @@ export default function ViewBill() {
   }, [billNumber]);
 
   const createPdfBlobFromInvoiceHtml = async () => {
-    if (!invoiceHtml) {
-      throw new Error('Invoice preview not available');
+    const frameDoc = iframeRef.current?.contentDocument;
+    const frameBody = frameDoc?.body;
+
+    if (!frameBody || frameBody.childElementCount === 0) {
+      throw new Error('Invoice preview not ready');
     }
 
     const container = document.createElement('div');
@@ -32,10 +36,21 @@ export default function ViewBill() {
     container.style.top = '0';
     container.style.width = '210mm';
     container.style.background = '#fff';
-    container.innerHTML = invoiceHtml;
+
+    const styleTag = frameDoc.querySelector('style');
+    if (styleTag) {
+      container.appendChild(styleTag.cloneNode(true));
+    }
+
+    const bodyClone = frameBody.cloneNode(true);
+    bodyClone.style.margin = '0';
+    container.appendChild(bodyClone);
     document.body.appendChild(container);
 
     try {
+      // Let browser layout cloned DOM before html2canvas snapshot
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
       const pdfBlob = await html2pdf()
         .set({
           margin: [0, 0, 0, 0],
@@ -158,6 +173,7 @@ export default function ViewBill() {
       {/* Invoice Preview — identical to PDF */}
       <div className="bg-white shadow-lg rounded overflow-hidden">
         <iframe
+          ref={iframeRef}
           id="invoice-frame"
           srcDoc={invoiceHtml}
           title="Invoice"
