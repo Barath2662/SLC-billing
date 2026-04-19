@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 const authRoutes = require('./routes/authRoutes');
 const billRoutes = require('./routes/billRoutes');
@@ -23,6 +24,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use('/static', express.static(path.join(__dirname, '../static')));
 
 // Routes
 app.use('/api/auth', authRoutes);

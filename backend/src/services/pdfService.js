@@ -84,6 +84,7 @@ function generateInvoiceHTML(bill) {
   const advanceAmount = bill.advance != null ? Number(bill.advance) : 0;
   const payableAmount = bill.payableAmount != null ? Number(bill.payableAmount) : Math.max(0, totalAmount - advanceAmount);
   const rupeesInWords = s(bill.rupeesInWords || numberToWords(totalAmount));
+  const qrImageSrc = s(process.env.QR_IMAGE_SRC || '/static/qr.png');
   const amountCell = (amount) => {
     const rs = amount != null && amount !== '' ? fmt2(amount) : '';
     const ps = rs ? '00' : '';
@@ -107,24 +108,34 @@ function generateInvoiceHTML(bill) {
   <html>
   <head>
     <style>
-      @page { size: A4 portrait; margin: 0; }
+      @page {
+        size: A4;
+        margin: 10mm;
+      }
 
       body {
         margin: 0;
         padding: 0;
-        background: #f5f5f5;
+        background: #fff;
         font-family: Arial, sans-serif;
         font-size: 12px;
         line-height: 1.2;
+      }
+
+      .page {
+        width: 100%;
         display: flex;
         justify-content: center;
       }
 
       .invoice {
         width: 794px;
+        min-height: 1123px;
         background: white;
         border: 2px solid black;
         box-sizing: border-box;
+        padding: 0;
+        page-break-inside: avoid;
       }
 
       table {
@@ -169,10 +180,15 @@ function generateInvoiceHTML(bill) {
         font-size: 11px;
         line-height: 1.3;
       }
+
+      .footer td {
+        border: none !important;
+      }
     </style>
   </head>
 
   <body>
+  <div class="page">
   <div class="invoice">
 
     <table class="no-border">
@@ -309,25 +325,38 @@ function generateInvoiceHTML(bill) {
     </table>
 
     <table>
-      <tr class="row-large">
-        <td style="width:70%">
+      <tr>
+        <td style="width:70%; vertical-align:top;">
           <b>Rupees :</b> ${rupeesInWords}
         </td>
-        <td style="width:30%; height:60px;" class="center bold">
+        <td style="width:30%;" class="center bold">
           For SRII LAKSHMI CAB
         </td>
       </tr>
     </table>
 
-    <table>
-      <tr class="row-medium"><td colspan="2" class="bold">BANK DETAILS</td></tr>
-      <tr class="row-medium"><td colspan="2">ACCOUNT HOLDER: SRII LAKSHMI CAB</td></tr>
-      <tr class="row-medium"><td colspan="2">Account number: 35530200000638</td></tr>
-      <tr class="row-medium"><td colspan="2">Bank name: BANK OF BARODA</td></tr>
-      <tr class="row-medium"><td colspan="2">IFSC CODE: BARB0TRICOI</td></tr>
-      <tr class="row-medium"><td colspan="2">Branch: Trichy Road, Coimbatore</td></tr>
+    <table class="footer">
+      <tr>
+        <td style="width:65%; vertical-align:top; padding:8px;">
+          <b>BANK DETAILS</b><br><br>
+          ACCOUNT HOLDER: SRII LAKSHMI CAB<br>
+          Account number: 35530200000638<br>
+          Bank name: BANK OF BARODA<br>
+          IFSC CODE: BARB0TRICOI<br>
+          Branch: Trichy Road, Coimbatore<br>
+          UPI ID: sriilakshmicab@upi
+          <div style="margin-top:10px;">
+            <img src="${qrImageSrc}" style="width:110px; height:110px;"/>
+          </div>
+        </td>
+        <td style="width:35%; vertical-align:bottom; text-align:center; padding:8px;">
+          <div style="height:100px;"></div>
+          <b>For SRII LAKSHMI CAB</b>
+        </td>
+      </tr>
     </table>
 
+  </div>
   </div>
   </body>
   </html>
