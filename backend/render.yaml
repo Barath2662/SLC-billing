@@ -2,7 +2,7 @@ services:
   - type: web
     name: slc-billing-api
     runtime: node
-    buildCommand: npm install && npx puppeteer browsers install chrome && npx prisma migrate deploy
+    buildCommand: npm install && npx prisma migrate deploy
     startCommand: npm start
     plan: free
     envVars:
