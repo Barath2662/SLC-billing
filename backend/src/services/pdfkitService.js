@@ -6,7 +6,7 @@ const { generateInvoiceHTML } = require('./pdfService');
  * Generate PDF using Puppeteer from HTML invoice
  * Returns the same format as displayed in ViewBill page
  */
-async function generatePDFFromHTML(bill) {
+async function generatePDFFromHTML(htmlOrBill) {
   let browser;
   try {
     const executablePath = (() => {
@@ -28,6 +28,7 @@ async function generatePDFFromHTML(bill) {
         '--disable-dev-shm-usage',
         '--disable-gpu',
       ],
+      timeout: 60000,
     };
 
     if (executablePath) {
@@ -37,7 +38,7 @@ async function generatePDFFromHTML(bill) {
     browser = await puppeteer.launch(launchOptions);
 
     const page = await browser.newPage();
-    const html = generateInvoiceHTML(bill);
+    const html = typeof htmlOrBill === 'string' ? htmlOrBill : generateInvoiceHTML(htmlOrBill);
 
     await page.setViewport({
       width: 794,
@@ -46,7 +47,7 @@ async function generatePDFFromHTML(bill) {
     });
 
     await page.setContent(html, {
-      waitUntil: ['load', 'networkidle0'],
+      waitUntil: ['load', 'domcontentloaded', 'networkidle0'],
       timeout: 60000,
     });
 
@@ -62,7 +63,8 @@ async function generatePDFFromHTML(bill) {
 
     return Buffer.from(pdfBuffer);
   } catch (error) {
-    throw new Error('PDF generation failed: ' + error.message);
+    console.error('❌ Puppeteer Error:', error);
+    throw error;
   } finally {
     if (browser) {
       await browser.close();

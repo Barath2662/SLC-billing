@@ -332,21 +332,29 @@ const generateBillPDF = async (req, res) => {
     const bill = await prisma.bill.findUnique({ where: { billNumber } });
 
     if (!bill) {
-      return res.status(404).json({ error: 'Bill not found.' });
+      return res.status(404).json({ error: 'Bill not found' });
     }
 
-    const pdfBuffer = await generatePDFFromHTML(bill);
+    const html = generateInvoiceHTML(bill);
+    const pdfBuffer = await generatePDFFromHTML(html);
 
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename=invoice-${billNumber}.pdf`,
-      'Content-Length': pdfBuffer.length,
-    });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=invoice-${bill.billNumber}.pdf`);
+    res.setHeader('Content-Length', pdfBuffer.length);
 
     res.send(pdfBuffer);
-  } catch (err) {
-    console.error('Generate PDF error:', err);
-    res.status(500).json({ error: 'PDF generation failed', fallback: true });
+  } catch (error) {
+    console.error('🔥 PDF GENERATION ERROR:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      billNumber: req.params.billNumber,
+    });
+
+    res.status(500).json({
+      error: 'PDF generation failed',
+      message: error.message,
+    });
   }
 };
 
