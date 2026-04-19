@@ -62,31 +62,28 @@ function formatDate(date) {
 function generateInvoiceHTML(bill) {
   const n = (v) => v != null ? Number(v) : 0;
   const s = (val) => escapeHtml(val || '');
+  const fmt2 = (val) => (val != null && val !== '' ? Number(val).toFixed(2) : '');
   const tripDate = bill.tripDate ? formatDate(bill.tripDate) : '';
-  const totalAmount = n(bill.totalAmount);
-  const chargeableKms = bill.chargeableKms != null ? n(bill.chargeableKms) : Math.max(0, n(bill.totalKms) - n(bill.freeKms));
+  const date = bill.date ? formatDate(bill.date) : '';
+  const totalKms = bill.totalKms != null ? Number(bill.totalKms) : 0;
+  const totalHours = bill.totalHours != null ? Number(bill.totalHours) : 0;
+  const chargeableKms = bill.chargeableKms != null ? Number(bill.chargeableKms) : Math.max(0, totalKms - n(bill.freeKms));
   const dayCount = (() => {
     if (!bill.multipleDays || !bill.tripDate || !bill.tripEndDate) return 1;
     const diff = Math.round((new Date(bill.tripEndDate) - new Date(bill.tripDate)) / (1000 * 60 * 60 * 24));
     return Math.max(1, diff + 1);
   })();
 
-  const kmAmount = Math.round(chargeableKms * n(bill.chargePerKm) * 100) / 100;
-  const dayAmount = Math.round(n(bill.chargePerDay) * dayCount * 100) / 100;
+  const kmAmount = bill.kmAmount != null
+    ? Number(bill.kmAmount)
+    : Math.round(chargeableKms * n(bill.chargePerKm) * 100) / 100;
+  const dayAmount = bill.dayAmount != null
+    ? Number(bill.dayAmount)
+    : Math.round(n(bill.chargePerDay) * dayCount * 100) / 100;
+  const totalAmount = bill.totalAmount != null ? Number(bill.totalAmount) : 0;
+  const advanceAmount = bill.advance != null ? Number(bill.advance) : 0;
+  const payableAmount = bill.payableAmount != null ? Number(bill.payableAmount) : Math.max(0, totalAmount - advanceAmount);
   const rupeesInWords = s(bill.rupeesInWords || numberToWords(totalAmount));
-
-  const amountCell = (amount) => {
-    const num = Math.round(n(amount) * 100) / 100;
-    if (!num) return { rs: '', ps: '' };
-    const rs = Math.floor(num);
-    const ps = Math.round((num - rs) * 100);
-    return { rs: String(rs), ps: ps > 0 ? String(ps).padStart(2, '0') : '00' };
-  };
-
-  const kmCell = amountCell(kmAmount);
-  const dayCell = amountCell(dayAmount);
-  const tollCell = amountCell(bill.tollCharges);
-  const totalCell = amountCell(totalAmount);
 
   return `
   <html>
@@ -98,36 +95,35 @@ function generateInvoiceHTML(bill) {
         width: 794px;
         margin: 0;
         font-family: Arial, sans-serif;
+        font-size: 12px;
       }
 
       table {
         width: 100%;
         border-collapse: collapse;
-        table-layout: fixed;
       }
 
-      td, th {
+      td {
         border: 1px solid black;
-        padding: 6px;
-        font-size: 12px;
+        padding: 4px;
         vertical-align: middle;
-        word-break: break-word;
       }
 
       .no-border td {
         border: none;
       }
 
-      .center {
-        text-align: center;
-      }
+      .center { text-align: center; }
+      .right { text-align: right; }
+      .bold { font-weight: bold; }
 
-      .right {
-        text-align: right;
-      }
-
-      .bold {
+      .title {
+        font-size: 18px;
         font-weight: bold;
+      }
+
+      .small {
+        font-size: 11px;
       }
     </style>
   </head>
@@ -136,81 +132,153 @@ function generateInvoiceHTML(bill) {
 
     <table class="no-border">
       <tr>
-        <td class="center bold" style="font-size:20px;">
-          SRII LAKSHMI CAB
+        <td class="center title">SRII LAKSHMI CAB</td>
+      </tr>
+      <tr>
+        <td class="center small">
+          5/12-AB, 5th Street East, Nanjappa Nagar, Boat house West, Singanallur,<br/>
+          Coimbatore-641005 | Email: cabsriilakshmi@gmail.com
         </td>
       </tr>
       <tr>
-        <td class="center">
-          5/12-AB, 5th Street East, Nanjappa Nagar, Singanallur, Coimbatore
-        </td>
-      </tr>
-      <tr>
-        <td class="center bold">
-          Ph: 94439 14314, 80127 81549
-        </td>
-      </tr>
-    </table>
-
-    <table>
-      <tr>
-        <td style="width:60%">To: M/s ${s(bill.customerName)}</td>
-        <td style="width:40%" class="right bold">
-          CASH BILL / INVOICE<br/>
-          No: ${s(bill.billNumber)}
+        <td class="center bold small">
+          Ph: 94439 14314, 80127 81549, 81482 51567
         </td>
       </tr>
     </table>
 
     <table>
       <tr>
-        <td style="width:60%">Travel: ${s(bill.travelDetails)}</td>
-        <td style="width:40%">Date: ${s(formatDate(bill.date))}</td>
+        <td style="width:60%">To. M/s ${s(bill.customerName)}</td>
+        <td style="width:40%" class="center bold">
+          CASH BILL / INVOICE
+        </td>
       </tr>
       <tr>
-        <td>Vehicle: ${s(bill.vehicleNumber)}</td>
-        <td>Trip Date: ${s(tripDate)}</td>
+        <td>GSTIN : ${s(bill.gstin)}</td>
+        <td>No. ${s(bill.billNumber)}</td>
       </tr>
     </table>
 
     <table>
       <tr>
-        <th style="width:65%">Description</th>
-        <th style="width:17.5%">Rs.</th>
-        <th style="width:17.5%">Ps.</th>
+        <td style="width:70%">Travel Details ${s(bill.travelDetails)}</td>
+        <td style="width:30%">Date : ${s(date)}</td>
+      </tr>
+      <tr>
+        <td>Vehicle No. ${s(bill.vehicleNumber)}</td>
+        <td>Trip Date : ${s(tripDate)}</td>
+      </tr>
+    </table>
+
+    <table>
+
+      <tr>
+        <td style="width:50%">Closing Time ${s(bill.closingTime)}</td>
+        <td style="width:25%">Closing Kms ${fmt2(bill.closingKms)}</td>
+        <td rowspan="3" style="width:25%">
+          <table style="height:100%">
+            <tr><td class="center bold">AMOUNT</td></tr>
+            <tr>
+              <td>
+                <table>
+                  <tr>
+                    <td class="center bold">Rs.</td>
+                    <td class="center bold">Ps.</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
       </tr>
 
       <tr>
-        <td>Charge per Km</td>
-        <td class="right">${kmCell.rs}</td>
-        <td class="right">${kmCell.ps}</td>
+        <td>Starting Time ${s(bill.startingTime)}</td>
+        <td>Starting Kms ${fmt2(bill.startingKms)}</td>
       </tr>
 
       <tr>
-        <td>Charge per Day</td>
-        <td class="right">${dayCell.rs}</td>
-        <td class="right">${dayCell.ps}</td>
+        <td>Total Hours ${fmt2(totalHours)}</td>
+        <td>Total Kms ${fmt2(totalKms)}</td>
       </tr>
 
       <tr>
-        <td>Toll Charges</td>
-        <td class="right">${tollCell.rs}</td>
-        <td class="right">${tollCell.ps}</td>
+        <td colspan="2">
+          Charge per Km Rs. ${fmt2(bill.chargePerKm)} × ${fmt2(chargeableKms)}
+        </td>
+        <td class="right">${fmt2(kmAmount)} 00</td>
       </tr>
 
       <tr>
-        <td class="bold">TOTAL</td>
-        <td class="right bold">${totalCell.rs}</td>
-        <td class="right bold">${totalCell.ps}</td>
+        <td colspan="2">
+          Charge per Hour × ${fmt2(totalHours)}
+        </td>
+        <td></td>
+      </tr>
+
+      <tr>
+        <td colspan="2">
+          Charge per Day Rs. ${fmt2(bill.chargePerDay)}
+        </td>
+        <td class="right">${fmt2(dayAmount)} 00</td>
+      </tr>
+
+      <tr>
+        <td colspan="2">Toll Charges Rs. ${fmt2(bill.tollCharges) || ''}</td>
+        <td class="right">${fmt2(bill.tollCharges) || ''} 00</td>
+      </tr>
+
+      <tr>
+        <td colspan="2">Night Halt Charges</td>
+        <td></td>
+      </tr>
+
+      <tr>
+        <td colspan="2">Driver Bata</td>
+        <td></td>
+      </tr>
+
+      <tr>
+        <td colspan="2">Other Expenses / Permit Charges</td>
+        <td></td>
+      </tr>
+
+      <tr>
+        <td colspan="2" class="center bold">TOTAL</td>
+        <td class="right bold">${fmt2(totalAmount)} 00</td>
+      </tr>
+
+      <tr>
+        <td colspan="2" class="right">Less: Advance</td>
+        <td class="right">${fmt2(advanceAmount)} 00</td>
+      </tr>
+
+      <tr>
+        <td colspan="2" class="center bold">PAYABLE AMOUNT</td>
+        <td class="right bold">${fmt2(payableAmount)} 00</td>
+      </tr>
+
+    </table>
+
+    <table>
+      <tr>
+        <td style="width:70%">
+          Rupees : ${rupeesInWords}
+        </td>
+        <td style="width:30%" class="center">
+          For SRII LAKSHMI CAB
+        </td>
       </tr>
     </table>
 
     <table class="no-border">
-      <tr>
-        <td>
-          Rupees: ${rupeesInWords}
-        </td>
-      </tr>
+      <tr><td class="bold">BANK DETAILS</td></tr>
+      <tr><td>ACCOUNT HOLDER: SRII LAKSHMI CAB</td></tr>
+      <tr><td>Account number: 35530200000638</td></tr>
+      <tr><td>Bank name: BANK OF BARODA</td></tr>
+      <tr><td>IFSC CODE: BARB0TRICOI</td></tr>
+      <tr><td>Branch: Trichy Road, Coimbatore</td></tr>
     </table>
 
   </body>
