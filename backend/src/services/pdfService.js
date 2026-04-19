@@ -84,16 +84,8 @@ function generateInvoiceHTML(bill) {
   const advanceAmount = bill.advance != null ? Number(bill.advance) : 0;
   const payableAmount = bill.payableAmount != null ? Number(bill.payableAmount) : Math.max(0, totalAmount - advanceAmount);
   const rupeesInWords = s(bill.rupeesInWords || numberToWords(totalAmount));
-  const amountCell = (amount) => {
-    const rs = amount != null && amount !== '' ? fmt2(amount) : '';
-    const ps = rs ? '00' : '';
-    return `<table style="width:100%; border-collapse:collapse; table-layout:fixed;">
-      <tr>
-        <td class="right" style="width:65%; border:none; border-right:1.5px solid black;">${rs}</td>
-        <td style="text-align:right; font-weight:normal; width:35%; border:none;">${ps}</td>
-      </tr>
-    </table>`;
-  };
+  const amountRs = (amount) => (amount != null && amount !== '' ? fmt2(amount) : '');
+  const amountPs = (amount) => (amount != null && amount !== '' ? '00' : '');
 
   const formatTotalHours = (hoursDecimal) => {
     const hours = Number(hoursDecimal || 0);
@@ -263,18 +255,20 @@ function generateInvoiceHTML(bill) {
       <tr class="row-medium">
         <td style="width:50%">Closing Time : ${s(bill.closingTime)}</td>
         <td style="width:25%">Closing Kms : ${s(bill.closingKms)}</td>
-        <td style="width:25%" class="center bold">AMOUNT</td>
+        <td style="width:15%" colspan="2" class="center bold">AMOUNT</td>
       </tr>
 
       <tr class="row-medium">
         <td>Starting Time : ${s(bill.startingTime)}</td>
         <td>Starting Kms : ${s(bill.startingKms)}</td>
-        <td class="center bold">Rs.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Ps.</td>
+        <td class="center bold">Rs.</td>
+        <td class="center bold">Ps.</td>
       </tr>
 
       <tr class="row-medium">
         <td>Total Hours : ${formatTotalHours(totalHours)}</td>
         <td>Total Kms : ${s(totalKms)}</td>
+        <td></td>
         <td></td>
       </tr>
 
@@ -282,7 +276,8 @@ function generateInvoiceHTML(bill) {
         <td colspan="2">
           Charge per Km : Rs. ${fmt2(bill.chargePerKm)} × ${fmt2(chargeableKms)}
         </td>
-        <td style="padding:0;">${amountCell(kmAmount)}</td>
+        <td class="right">${amountRs(kmAmount)}</td>
+        <td class="right">${amountPs(kmAmount)}</td>
       </tr>
 
       <tr class="row-medium">
@@ -290,48 +285,57 @@ function generateInvoiceHTML(bill) {
           Charge per Hour : ${fmt2(totalHours)}
         </td>
         <td></td>
+        <td></td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">
           Charge per Day : Rs. ${fmt2(bill.chargePerDay)}
         </td>
-        <td style="padding:0;">${amountCell(dayAmount)}</td>
+        <td class="right">${amountRs(dayAmount)}</td>
+        <td class="right">${amountPs(dayAmount)}</td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">Toll Charges : Rs. ${fmt2(bill.tollCharges) || ''}</td>
-        <td style="padding:0;">${amountCell(bill.tollCharges)}</td>
+        <td class="right">${amountRs(bill.tollCharges)}</td>
+        <td class="right">${amountPs(bill.tollCharges)}</td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">Night Halt Charges :</td>
+        <td></td>
         <td></td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">Driver Bata :</td>
         <td></td>
+        <td></td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">Other Expenses / Permit Charges :</td>
         <td></td>
+        <td></td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2" class="center bold">TOTAL</td>
-        <td style="padding:0;">${amountCell(totalAmount)}</td>
+        <td class="right bold">${amountRs(totalAmount)}</td>
+        <td class="right bold">${amountPs(totalAmount)}</td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2" class="left" style="text-align:right; font-weight:normal;">Less: Advance</td>
-        <td style="padding:0;">${amountCell(advanceAmount)}</td>
+        <td class="right">${amountRs(advanceAmount)}</td>
+        <td class="right">${amountPs(advanceAmount)}</td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2" class="center bold">PAYABLE AMOUNT</td>
-        <td style="padding:0;">${amountCell(payableAmount)}</td>
+        <td class="right bold">${amountRs(payableAmount)}</td>
+        <td class="right bold">${amountPs(payableAmount)}</td>
       </tr>
 
     </table>
