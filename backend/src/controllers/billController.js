@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const { validationResult } = require('express-validator');
 const { generateBillNumber } = require('../services/billNumberService');
 const { generatePDF, generateInvoiceHTML, numberToWords } = require('../services/pdfService');
-const { generatePDFWithPDFKit } = require('../services/pdfkitService');
+const { generatePDFFromHTML } = require('../services/pdfkitService');
 const { calculateTotalKms, calculateDayCount, calculateTotalHours, calculateChargeableKms, calculateTotalAmount, calculatePayableAmount } = require('../utils/calculations');
 
 const prisma = new PrismaClient();
@@ -335,8 +335,8 @@ const generateBillPDF = async (req, res) => {
       return res.status(404).json({ error: 'Bill not found.' });
     }
 
-    // Use PDFKit for reliable PDF generation (no Chrome required)
-    const pdfBuffer = await generatePDFWithPDFKit(bill);
+    // Use generatePDFFromHTML to render the exact same invoice as ViewBill page
+    const pdfBuffer = await generatePDFFromHTML(bill);
 
     res.set({
       'Content-Type': 'application/pdf',
