@@ -5,6 +5,7 @@ const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 const authRoutes = require('./routes/authRoutes');
 const billRoutes = require('./routes/billRoutes');
+const { startKeepAliveJob } = require('./utils/keepAlive');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -40,43 +41,6 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-const KEEP_ALIVE_ENABLED = process.env.KEEP_ALIVE_ENABLED !== 'false';
-const keepAliveHoursRaw = Number(process.env.KEEP_ALIVE_INTERVAL_HOURS || 1);
-const KEEP_ALIVE_INTERVAL_HOURS = Number.isFinite(keepAliveHoursRaw) && keepAliveHoursRaw > 0
-  ? keepAliveHoursRaw
-  : 1;
-const KEEP_ALIVE_INTERVAL_MS = KEEP_ALIVE_INTERVAL_HOURS * 60 * 60 * 1000;
-const KEEP_ALIVE_LOG_THROTTLE_MS = 60 * 60 * 1000;
-
-const startKeepAlive = () => {
-  if (!KEEP_ALIVE_ENABLED) return;
-
-  const keepAliveUrl = process.env.KEEP_ALIVE_URL || `http://127.0.0.1:${PORT}/api/health`;
-  let lastWarnAt = 0;
-  const warnOncePerHour = (message) => {
-    const now = Date.now();
-    if (now - lastWarnAt >= KEEP_ALIVE_LOG_THROTTLE_MS) {
-      console.warn(message);
-      lastWarnAt = now;
-    }
-  };
-
-  const ping = async () => {
-    try {
-      const res = await fetch(keepAliveUrl);
-      if (!res.ok) {
-        warnOncePerHour(`[keep-alive] Health ping returned ${res.status}`);
-      }
-    } catch (err) {
-      warnOncePerHour('[keep-alive] Failed to ping health endpoint');
-    }
-  };
-
-  // Run once shortly after boot, then at the configured interval (default: 1 hour)
-  setTimeout(ping, 15000);
-  setInterval(ping, KEEP_ALIVE_INTERVAL_MS);
-};
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -85,7 +49,7 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  startKeepAlive();
+  startKeepAliveJob(prisma);
 });
 
 module.exports = app;
