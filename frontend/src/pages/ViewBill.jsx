@@ -23,37 +23,40 @@ export default function ViewBill() {
   }, [billNumber]);
 
   const createPdfBlobFromInvoiceHtml = async () => {
-    const frameDoc = iframeRef.current?.contentDocument;
-    const frameBody = frameDoc?.body;
-
-    if (!frameBody || frameBody.childElementCount === 0) {
+    if (!invoiceHtml) {
       throw new Error('Invoice preview not ready');
     }
 
-    const container = document.createElement('div');
-    container.style.position = 'fixed';
-    container.style.left = '-10000px';
-    container.style.top = '0';
-    container.style.width = '210mm';
-    container.style.background = '#fff';
-
-    const styleTag = frameDoc.querySelector('style');
-    if (styleTag) {
-      container.appendChild(styleTag.cloneNode(true));
+    const parsed = new DOMParser().parseFromString(invoiceHtml, 'text/html');
+    const bill = parsed.querySelector('.bill');
+    if (!bill) {
+      throw new Error('Invoice markup missing .bill root');
     }
 
-    const bodyClone = frameBody.cloneNode(true);
-    bodyClone.style.margin = '0';
-    container.appendChild(bodyClone);
+    const styleText = Array.from(parsed.querySelectorAll('style'))
+      .map((s) => s.textContent || '')
+      .join('\n');
+
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.left = '0';
+    container.style.top = '0';
+    container.style.width = '210mm';
+    container.style.minHeight = '297mm';
+    container.style.background = '#fff';
+    container.style.opacity = '0';
+    container.style.pointerEvents = 'none';
+    container.style.zIndex = '-1';
+    container.innerHTML = `<style>${styleText}</style>${bill.outerHTML}`;
     document.body.appendChild(container);
 
     try {
       // Let browser layout cloned DOM before html2canvas snapshot
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      const pdfBlob = await html2pdf()
+      const worker = html2pdf()
         .set({
-          margin: [0, 0, 0, 0],
+          margin: [10, 10, 10, 10],
           filename: `invoice-${billNumber}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
           html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
@@ -61,7 +64,10 @@ export default function ViewBill() {
           pagebreak: { mode: ['css', 'legacy'] },
         })
         .from(container)
-        .outputPdf('blob');
+        .toPdf();
+
+      const pdf = await worker.get('pdf');
+      const pdfBlob = pdf.output('blob');
 
       return pdfBlob;
     } finally {
