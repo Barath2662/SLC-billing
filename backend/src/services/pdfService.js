@@ -116,9 +116,12 @@ function generateInvoiceHTML(bill) {
         margin: 0;
         padding: 0;
         background: #fff;
-        font-family: Arial, sans-serif;
         font-size: 12px;
         line-height: 1.2;
+      }
+
+      body, table, td {
+        font-family: "Times New Roman", Times, serif;
       }
 
       .page {
@@ -342,9 +345,9 @@ function generateInvoiceHTML(bill) {
         <td style="width:20%; text-align:center; vertical-align:top; padding:8px;">
           <img src="/static/qr.png" style="width:120px; height:120px;"/>
         </td>
-        <td style="width:30%; vertical-align:bottom; text-align:center; padding:8px;">
-          <div style="height:120px; border:1.5px solid black; display:flex; align-items:flex-end; justify-content:center;">
-            <span style="margin-bottom:6px;"><b>Signature</b></span>
+        <td style="width:30%; padding:8px; vertical-align:top; text-align:center;">
+          <div style="height:120px; border:1.5px solid black; display:flex; align-items:flex-start; justify-content:center;">
+            <span style="margin-top:6px; font-weight:bold;">For SRII LAKSHMI CAB</span>
           </div>
         </td>
       </tr>
