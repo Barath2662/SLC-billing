@@ -42,44 +42,72 @@ export default function ViewBill() {
       throw new Error('Invoice markup missing .bill root');
     }
 
+    // Clone the bill element to work with
+    const clonedBill = billElement.cloneNode(true);
+    
+    // Create a temporary container with all necessary styles
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'fixed';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '-9999px';
+    tempContainer.style.width = '210mm';
+    tempContainer.style.backgroundColor = '#ffffff';
+    
+    // Get all styles from iframe
+    const styleElements = iframeDoc.querySelectorAll('style');
+    const styleText = Array.from(styleElements)
+      .map(s => s.textContent || '')
+      .join('\n');
+    
+    // Build complete HTML with styles
+    tempContainer.innerHTML = `
+      <style>
+        ${styleText}
+      </style>
+      ${clonedBill.outerHTML}
+    `;
+    
+    document.body.appendChild(tempContainer);
+
     try {
-      // Use html2canvas to capture the iframe's bill element with low scale to avoid overlaps
-      const canvas = await html2canvas(billElement, {
-        scale: 1,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        allowTaint: true,
+      // Wait for browser to render
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      // Use html2pdf directly on the container with HTML rendering
+      return new Promise((resolve, reject) => {
+        html2pdf()
+          .set({
+            margin: 0,
+            filename: `invoice-${billNumber}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+              scale: 1, 
+              useCORS: true, 
+              backgroundColor: '#ffffff',
+              logging: false,
+              allowTaint: true,
+              removeContainer: true
+            },
+            jsPDF: { 
+              unit: 'mm', 
+              format: 'a4', 
+              orientation: 'portrait',
+              compress: true
+            },
+            pagebreak: { mode: 'avoid' },
+          })
+          .from(tempContainer)
+          .toPdf()
+          .get('pdf')
+          .then((pdf) => {
+            resolve(pdf.output('blob'));
+          })
+          .catch((err) => {
+            reject(err);
+          });
       });
-
-      // A4 dimensions: 210mm x 297mm
-      // Convert canvas to image with proper sizing
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      
-      // Calculate dimensions: canvas is pixel-based, we want to fit on A4 portrait
-      // The invoice is ~190mm wide, so we can use ~180mm with 15mm margins
-      const pdfWidth = 210; // A4 width
-      const pdfHeight = 297; // A4 height
-      const contentWidth = 180; // Width available for content (with margins)
-      const margin = (pdfWidth - contentWidth) / 2; // Center content
-
-      // Calculate height based on aspect ratio
-      const aspectRatio = canvas.height / canvas.width;
-      const contentHeight = contentWidth * aspectRatio;
-
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      // Add image centered, fitting within margins
-      pdf.addImage(imgData, 'JPEG', margin, 10, contentWidth, contentHeight);
-
-      return pdf.output('blob');
-    } catch (err) {
-      console.error('PDF generation error:', err);
-      throw new Error('Failed to generate PDF: ' + err.message);
+    } finally {
+      document.body.removeChild(tempContainer);
     }
   };
 
