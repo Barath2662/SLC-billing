@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FiEdit, FiDownload, FiPrinter, FiShare2, FiArrowLeft, FiTrash2 } from 'react-icons/fi';
+import html2pdf from 'html2pdf.js';
 import { billAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -20,20 +21,63 @@ export default function ViewBill() {
       .finally(() => setLoading(false));
   }, [billNumber]);
 
+  const createPdfBlobFromInvoiceHtml = async () => {
+    if (!invoiceHtml) {
+      throw new Error('Invoice preview not available');
+    }
+
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.left = '-10000px';
+    container.style.top = '0';
+    container.style.width = '210mm';
+    container.style.background = '#fff';
+    container.innerHTML = invoiceHtml;
+    document.body.appendChild(container);
+
+    try {
+      const pdfBlob = await html2pdf()
+        .set({
+          margin: [0, 0, 0, 0],
+          filename: `invoice-${billNumber}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'] },
+        })
+        .from(container)
+        .outputPdf('blob');
+
+      return pdfBlob;
+    } finally {
+      document.body.removeChild(container);
+    }
+  };
+
+  const downloadBlob = (blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoice-${billNumber}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleDownloadPDF = async () => {
     try {
       toast.loading('Generating PDF...', { id: 'pdf' });
       const res = await billAPI.getPDF(billNumber);
       const blob = new Blob([res.data], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `invoice-${billNumber}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob);
       toast.success('PDF downloaded!', { id: 'pdf' });
     } catch {
-      toast.error('Failed to generate PDF', { id: 'pdf' });
+      try {
+        const fallbackBlob = await createPdfBlobFromInvoiceHtml();
+        downloadBlob(fallbackBlob);
+        toast.success('PDF downloaded (frontend fallback).', { id: 'pdf' });
+      } catch {
+        toast.error('Failed to generate PDF', { id: 'pdf' });
+      }
     }
   };
 
@@ -47,8 +91,14 @@ export default function ViewBill() {
 
   const handleShare = async () => {
     try {
-      const res = await billAPI.getPDF(billNumber);
-      const blob = new Blob([res.data], { type: 'application/pdf' });
+      let blob;
+      try {
+        const res = await billAPI.getPDF(billNumber);
+        blob = new Blob([res.data], { type: 'application/pdf' });
+      } catch {
+        blob = await createPdfBlobFromInvoiceHtml();
+      }
+
       const file = new File([blob], `invoice-${billNumber}.pdf`, { type: 'application/pdf' });
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({ title: `Invoice ${billNumber}`, files: [file] });
