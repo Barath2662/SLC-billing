@@ -1,6 +1,15 @@
+const path = require('path');
 const fs = require('fs');
 const puppeteer = require('puppeteer');
 const { formatHours } = require('../utils/calculations');
+
+if (process.env.RENDER === 'true') {
+  const projectCacheDir = path.join(process.cwd(), '.cache', 'puppeteer');
+  const configuredCache = process.env.PUPPETEER_CACHE_DIR || '';
+  if (!configuredCache || configuredCache.startsWith('/opt/render/.cache/')) {
+    process.env.PUPPETEER_CACHE_DIR = projectCacheDir;
+  }
+}
 
 function numberToWords(num) {
   if (num === 0) return 'Zero';

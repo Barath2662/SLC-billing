@@ -2,7 +2,7 @@ services:
   - type: web
     name: slc-billing-api
     runtime: node
-    buildCommand: PUPPETEER_CACHE_DIR=.cache/puppeteer npm install && PUPPETEER_CACHE_DIR=.cache/puppeteer npx puppeteer browsers install chrome && npx prisma migrate deploy
+    buildCommand: npm install && npx puppeteer browsers install chrome --path ./.cache/puppeteer && npx prisma migrate deploy
     startCommand: npm start
     plan: free
     envVars:
@@ -20,7 +20,7 @@ services:
       - key: JWT_EXPIRES_IN
         value: "7d"
       - key: PUPPETEER_CACHE_DIR
-        value: .cache/puppeteer
+        value: /opt/render/project/src/backend/.cache/puppeteer
 
 databases:
   - name: slc-billing-db
