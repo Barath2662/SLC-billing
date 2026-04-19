@@ -33,7 +33,6 @@ export default function EditBill() {
         chargePerDay: b.chargePerDay ?? '',
         fuelCharges: b.fuelCharges ?? '',
         localTripCharges: b.localTripCharges ?? '',
-        freeKms: b.freeKms ?? '',
         waitingCharges: b.waitingCharges ?? '',
         nightHaltCharges: b.nightHaltCharges ?? '',
         driverBata: b.driverBata ?? '',
