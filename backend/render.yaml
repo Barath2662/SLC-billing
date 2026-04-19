@@ -19,6 +19,8 @@ services:
         value: ${JWT_SECRET}
       - key: JWT_EXPIRES_IN
         value: "7d"
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/.cache/puppeteer
 
 databases:
   - name: slc-billing-db

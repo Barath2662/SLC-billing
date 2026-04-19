@@ -569,25 +569,49 @@ function generateInvoiceHTML(bill) {
 
 async function generatePDF(bill) {
   const html = generateInvoiceHTML(bill);
-  
-  const browser = await puppeteer.launch({
+
+  const launchOptions = {
     headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
-  
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  
-  const pdfBuffer = await page.pdf({
-    format: 'A4',
-    printBackground: true,
-    preferCSSPageSize: true,
-    margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
-  });
-  
-  await browser.close();
-  // Puppeteer v21+ returns Uint8Array; convert to Buffer so Express sends raw bytes
-  return Buffer.from(pdfBuffer);
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--font-render-hinting=none',
+    ],
+  };
+
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  } else {
+    try {
+      launchOptions.executablePath = puppeteer.executablePath();
+    } catch (err) {
+      // Let Puppeteer auto-resolve the browser if executablePath is unavailable.
+    }
+  }
+
+  let browser;
+  try {
+    browser = await puppeteer.launch(launchOptions);
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
+    await page.emulateMediaType('screen');
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
+      timeout: 60000,
+    });
+
+    // Puppeteer v21+ returns Uint8Array; convert to Buffer so Express sends raw bytes
+    return Buffer.from(pdfBuffer);
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
 }
 
 module.exports = { generatePDF, generateInvoiceHTML, numberToWords };
