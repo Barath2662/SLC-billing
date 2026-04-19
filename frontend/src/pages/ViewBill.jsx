@@ -1,14 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { FiEdit, FiDownload, FiPrinter, FiShare2, FiArrowLeft, FiTrash2 } from 'react-icons/fi';
-import html2pdf from 'html2pdf.js';
+import { FiEdit, FiDownload, FiShare2, FiArrowLeft, FiTrash2 } from 'react-icons/fi';
 import { billAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
 export default function ViewBill() {
   const { billNumber } = useParams();
   const navigate = useNavigate();
-  const iframeRef = useRef(null);
   const [invoiceHtml, setInvoiceHtml] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -22,45 +20,6 @@ export default function ViewBill() {
       .finally(() => setLoading(false));
   }, [billNumber]);
 
-  const createPdfBlobFromInvoiceHtml = async () => {
-    if (!iframeRef.current) {
-      throw new Error('Invoice preview not ready');
-    }
-
-    const iframe = iframeRef.current;
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-
-    if (!iframeDoc) {
-      throw new Error('Cannot access iframe document');
-    }
-
-    const invoiceElement = iframeDoc.querySelector('.invoice-container') || iframeDoc.querySelector('.bill');
-    if (!invoiceElement) {
-      throw new Error('Invoice markup missing root container');
-    }
-
-    return html2pdf()
-      .set({
-        margin: [0, 0, 0, 0],
-        filename: `invoice-${billNumber}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-        },
-        jsPDF: {
-          unit: 'mm',
-          format: 'a4',
-          orientation: 'portrait',
-          compress: false,
-        },
-      })
-      .from(invoiceElement)
-      .outputPdf('blob');
-  };
-
   const downloadBlob = (blob) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -73,58 +32,20 @@ export default function ViewBill() {
   const handleDownloadPDF = async () => {
     try {
       toast.loading('Generating PDF...', { id: 'pdf' });
-
-      try {
-        const res = await billAPI.getPDF(billNumber);
-        const blob = new Blob([res.data], { type: 'application/pdf' });
-        downloadBlob(blob);
-        toast.success('PDF downloaded!', { id: 'pdf' });
-        return;
-      } catch (backendErr) {
-        console.warn('Backend PDF failed, trying frontend fallback...', backendErr);
-      }
-
-      try {
-        const fallbackBlob = await createPdfBlobFromInvoiceHtml();
-        downloadBlob(fallbackBlob);
-        toast.success('PDF downloaded (fallback)', { id: 'pdf' });
-        return;
-      } catch (fallbackErr) {
-        console.warn('Frontend fallback failed, using print dialog...', fallbackErr);
-      }
-
-      const iframe = document.getElementById('invoice-frame');
-      if (iframe) {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        toast.success('Use Save as PDF in print dialog', { id: 'pdf' });
-      } else {
-        toast.error('Failed to generate PDF', { id: 'pdf' });
-      }
+      const res = await billAPI.getPDF(billNumber);
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      downloadBlob(blob);
+      toast.success('PDF downloaded!', { id: 'pdf' });
     } catch (err) {
       console.error('PDF download error:', err);
       toast.error('Failed to download PDF', { id: 'pdf' });
     }
   };
 
-  const handlePrint = () => {
-    const iframe = document.getElementById('invoice-frame');
-    if (iframe) {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-    }
-  };
-
   const handleShare = async () => {
     try {
-      let blob;
-
-      try {
-        const res = await billAPI.getPDF(billNumber);
-        blob = new Blob([res.data], { type: 'application/pdf' });
-      } catch {
-        blob = await createPdfBlobFromInvoiceHtml();
-      }
+      const res = await billAPI.getPDF(billNumber);
+      const blob = new Blob([res.data], { type: 'application/pdf' });
 
       const file = new File([blob], `invoice-${billNumber}.pdf`, { type: 'application/pdf' });
       if (navigator.share && navigator.canShare({ files: [file] })) {
@@ -171,9 +92,6 @@ export default function ViewBill() {
         <button onClick={handleDownloadPDF} className="btn-primary flex items-center space-x-1 text-sm">
           <FiDownload /><span>Download PDF</span>
         </button>
-        <button onClick={handlePrint} className="btn-secondary flex items-center space-x-1 text-sm">
-          <FiPrinter /><span>Print</span>
-        </button>
         <button onClick={handleShare} className="btn-secondary flex items-center space-x-1 text-sm">
           <FiShare2 /><span>Share</span>
         </button>
@@ -185,7 +103,6 @@ export default function ViewBill() {
       {/* Invoice Preview — identical to PDF */}
       <div className="bg-white shadow-lg rounded overflow-hidden">
         <iframe
-          ref={iframeRef}
           id="invoice-frame"
           srcDoc={invoiceHtml}
           title="Invoice"
