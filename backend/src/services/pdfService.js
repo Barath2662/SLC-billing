@@ -354,7 +354,7 @@ function generateInvoiceHTML(bill) {
           UPI ID: srii94439143638@barodampay
         </td>
         <td style="width:20%; text-align:center; vertical-align:top; padding:8px;">
-          <img src="/static/qr.png" style="width:120px; height:120px;"/>
+          <img src="https://res.cloudinary.com/ddhtwszqg/image/upload/v1776605469/qr_qr06ee.jpg" alt="Payment QR" style="width:120px; height:120px; object-fit:contain; display:block; margin:auto;"/>
         </td>
         <td style="width:30%; padding:8px; vertical-align:top; text-align:center;">
           <div style="height:120px; border:1.5px solid black; display:flex; align-items:flex-start; justify-content:center;">

@@ -46,11 +46,11 @@ async function generatePDFFromHTML(bill) {
     });
 
     await page.setContent(html, {
-      waitUntil: ['domcontentloaded', 'networkidle0'],
+      waitUntil: ['load', 'networkidle0'],
       timeout: 60000,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
