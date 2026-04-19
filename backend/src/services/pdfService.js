@@ -150,18 +150,39 @@ function generateInvoiceHTML(bill) {
   <meta charset="UTF-8">
   <style>
     @page { size: A4 portrait; margin: 0; }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:Arial,sans-serif; font-size:12px; color:#000; background:#fff; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { width: 100%; height: 100%; }
+    body { 
+      font-family: Arial, sans-serif; 
+      font-size: 12px; 
+      color: #000; 
+      background: #fff;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      line-height: 1.4;
+    }
     .bill {
       width: 100%;
       margin: 0;
+      padding: 0;
       border: 2px solid #000;
-      display: flex;
-      flex-direction: column;
+      display: block;
     }
-    .charges-wrap { }
-    table { border-collapse: collapse; width: 100%; }
-    td, th { vertical-align: middle; }
+    .charges-wrap { 
+      display: block;
+      width: 100%;
+    }
+    table { 
+      border-collapse: collapse; 
+      width: 100%;
+      table-layout: fixed;
+    }
+    td, th { 
+      vertical-align: middle;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
   </style>
 </head>
 <body>

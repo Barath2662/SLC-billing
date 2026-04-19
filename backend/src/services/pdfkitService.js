@@ -25,7 +25,7 @@ async function generatePDFFromHTML(bill) {
     await page.setViewport({
       width: 794,   // A4 210mm at 96 DPI
       height: 1123, // A4 297mm at 96 DPI
-      deviceScaleFactor: 2, // Higher quality
+      deviceScaleFactor: 1,
     });
 
     // Inject optimized CSS for PDF rendering
@@ -36,24 +36,16 @@ async function generatePDFFromHTML(bill) {
           size: A4 portrait;
           margin: 0;
         }
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-        body {
+        html, body {
           margin: 0;
           padding: 0;
           width: 100%;
           height: 100%;
         }
-        .bill {
-          width: 100%;
+        * {
           margin: 0;
           padding: 0;
-          border: 2px solid #000;
-          display: flex;
-          flex-direction: column;
+          box-sizing: border-box;
         }
         table {
           border-collapse: collapse;
@@ -66,9 +58,10 @@ async function generatePDFFromHTML(bill) {
           overflow-wrap: break-word;
         }
         @media print {
-          body { margin: 0; padding: 0; }
-          * { margin: 0; padding: 0; }
-          .bill { margin: 0; padding: 0; break-inside: avoid; }
+          * { margin: 0 !important; padding: 0 !important; }
+          body { margin: 0 !important; padding: 0 !important; }
+          .bill { margin: 0 !important; padding: 0 !important; break-after: avoid; }
+          table { page-break-inside: avoid; }
         }
       </style></head>`
     );
@@ -78,8 +71,7 @@ async function generatePDFFromHTML(bill) {
       timeout: 60000,
     });
 
-    // Wait for proper rendering
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(1000);
 
     // Generate PDF with optimized settings
     const pdfBuffer = await page.pdf({
