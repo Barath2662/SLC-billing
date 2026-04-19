@@ -4,10 +4,11 @@ const { execSync } = require('child_process');
 const puppeteer = require('puppeteer');
 
 const backendRoot = path.resolve(__dirname, '..');
-const renderCacheDir = path.join(backendRoot, '.cache', 'puppeteer');
+const localCacheDir = path.join(backendRoot, '.cache', 'puppeteer');
+const renderCacheDir = '/opt/render/.cache/puppeteer';
 const cacheDir = process.env.RENDER === 'true'
   ? (process.env.PUPPETEER_CACHE_DIR || renderCacheDir)
-  : (process.env.PUPPETEER_CACHE_DIR || '/opt/render/.cache/puppeteer');
+  : (process.env.PUPPETEER_CACHE_DIR || localCacheDir);
 process.env.PUPPETEER_CACHE_DIR = cacheDir;
 
 const hasChrome = () => {

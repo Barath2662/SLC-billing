@@ -346,7 +346,7 @@ const generateBillPDF = async (req, res) => {
     res.send(pdfBuffer);
   } catch (err) {
     console.error('Generate PDF error:', err);
-    res.status(500).json({ error: 'Failed to generate PDF.' });
+    res.status(500).json({ error: 'PDF generation failed', fallback: true });
   }
 };
 

@@ -1,3 +1,4 @@
+const fs = require('fs');
 const puppeteer = require('puppeteer');
 const { generateInvoiceHTML } = require('./pdfService');
 
@@ -8,14 +9,32 @@ const { generateInvoiceHTML } = require('./pdfService');
 async function generatePDFFromHTML(bill) {
   let browser;
   try {
-    browser = await puppeteer.launch({
+    const executablePath = (() => {
+      if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
+        return process.env.PUPPETEER_EXECUTABLE_PATH;
+      }
+      const chromiumFallback = '/usr/bin/chromium-browser';
+      if (fs.existsSync(chromiumFallback)) {
+        return chromiumFallback;
+      }
+      return undefined;
+    })();
+
+    const launchOptions = {
       headless: 'new',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
         '--disable-gpu',
       ],
-    });
+    };
+
+    if (executablePath) {
+      launchOptions.executablePath = executablePath;
+    }
+
+    browser = await puppeteer.launch(launchOptions);
 
     const page = await browser.newPage();
     const html = generateInvoiceHTML(bill);
