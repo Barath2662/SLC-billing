@@ -134,20 +134,19 @@ function generateInvoiceHTML(bill) {
       }
 
       tr {
-        height: 28px;
+        height: 24px;
       }
 
       td {
         border: 1.2px solid black;
-        padding: 3px 5px;
+        padding: 4px 5px;
         vertical-align: middle;
         font-size: 12px;
         line-height: 1.2;
       }
 
-      tr { height: 26px; }
       .row-tight { height: 22px; }
-      .row-medium { height: 26px; }
+      .row-medium { height: 24px; }
       .row-large { height: 32px; }
 
       .no-border td {
@@ -195,34 +194,34 @@ function generateInvoiceHTML(bill) {
 
     <table>
       <tr>
-        <td style="width:65%; vertical-align:top;">
+        <td style="width:65%; vertical-align:top; padding:6px;">
           <div><b>To. M/s</b> ${s(bill.customerName)}</div>
-          <div style="margin-top:10px;">GSTIN : ${s(bill.gstin)}</div>
+          <div style="margin-top:4px;">GSTIN :</div>
         </td>
         <td style="width:35%; padding:0;">
           <table style="width:100%; border-collapse:collapse;">
             <tr>
-              <td style="background:#3b0ca3; color:#fff; font-weight:bold; text-align:center; border-bottom:1.5px solid black; letter-spacing:1px;">
+              <td class="center bold" style="background:#3b0ca3; color:white; border-bottom:1.5px solid black; letter-spacing:1px;">
                 CASH BILL / INVOICE
               </td>
             </tr>
             <tr>
-              <td style="padding:6px;">
+              <td style="padding:4px;">
                 <b>No:</b> <span style="font-size:18px;">${s(bill.billNumber)}</span>
               </td>
             </tr>
             <tr>
-              <td style="padding:6px;">
+              <td style="padding:4px;">
                 <b>Date :</b> ${s(date)}
               </td>
             </tr>
             <tr>
-              <td style="padding:6px;">
+              <td style="padding:4px;">
                 <b>Vehicle No.</b> ${s(bill.vehicleNumber)}
               </td>
             </tr>
             <tr>
-              <td style="padding:6px;">
+              <td style="padding:4px;">
                 <b>Trip Date :</b> ${s(tripDate)}
               </td>
             </tr>
@@ -233,12 +232,7 @@ function generateInvoiceHTML(bill) {
 
     <table class="section">
       <tr class="row-medium">
-        <td style="width:70%">Travel Details ${s(bill.travelDetails)}</td>
-        <td style="width:30%"></td>
-      </tr>
-      <tr class="row-medium">
-        <td>Vehicle No. ${s(bill.vehicleNumber)}</td>
-        <td>Trip Date : ${s(tripDate)}</td>
+        <td colspan="2">Travel Details ${s(bill.travelDetails)}</td>
       </tr>
     </table>
 
