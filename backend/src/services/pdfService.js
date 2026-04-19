@@ -84,14 +84,13 @@ function generateInvoiceHTML(bill) {
   const advanceAmount = bill.advance != null ? Number(bill.advance) : 0;
   const payableAmount = bill.payableAmount != null ? Number(bill.payableAmount) : Math.max(0, totalAmount - advanceAmount);
   const rupeesInWords = s(bill.rupeesInWords || numberToWords(totalAmount));
-  const amountCell = (amount, boldRs = false) => {
+  const amountCell = (amount) => {
     const rs = amount != null && amount !== '' ? fmt2(amount) : '';
     const ps = rs ? '00' : '';
-    const rsClass = boldRs ? 'right bold' : 'right';
-    return `<table style="width:100%; border-collapse:collapse;">
+    return `<table style="width:100%; border-collapse:collapse; table-layout:fixed;">
       <tr>
-        <td class="${rsClass}" style="width:65%; border:none; border-right:1.5px solid black;">${rs}</td>
-        <td class="right" style="width:35%; border:none;">${ps}</td>
+        <td class="right" style="width:65%; border:none; border-right:1.5px solid black;">${rs}</td>
+        <td style="text-align:right; font-weight:normal; width:35%; border:none;">${ps}</td>
       </tr>
     </table>`;
   };
@@ -103,21 +102,39 @@ function generateInvoiceHTML(bill) {
       @page { size: A4 portrait; margin: 0; }
 
       body {
-        width: 794px;
         margin: 0;
+        background: #f5f5f5;
         font-family: Arial, sans-serif;
         font-size: 12px;
         line-height: 1.2;
       }
 
+      .page {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+
+      .invoice {
+        width: 794px;
+        background: white;
+        border: 2px solid black;
+        padding: 0;
+      }
+
       table {
         width: 100%;
         border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      tr {
+        height: 28px;
       }
 
       td {
         border: 1.5px solid black;
-        padding: 3px 4px;
+        padding: 4px 6px;
         vertical-align: middle;
       }
 
@@ -126,34 +143,38 @@ function generateInvoiceHTML(bill) {
       }
 
       .center { text-align: center; }
-      .right { text-align: right; }
+      .right { text-align: right; font-weight: bold; }
       .bold { font-weight: bold; }
 
-      .title {
+      .header-title {
         font-size: 18px;
         font-weight: bold;
+        letter-spacing: 2px;
       }
 
-      .small {
+      .header-sub {
         font-size: 11px;
+        line-height: 1.3;
       }
     </style>
   </head>
 
   <body>
+  <div class="page">
+  <div class="invoice">
 
     <table class="no-border">
       <tr>
-        <td class="center title">SRII LAKSHMI CAB</td>
+        <td class="center header-title">SRII LAKSHMI CAB</td>
       </tr>
       <tr>
-        <td class="center small">
+        <td class="center header-sub">
           5/12-AB, 5th Street East, Nanjappa Nagar, Boat house West, Singanallur,<br/>
           Coimbatore-641005 | Email: cabsriilakshmi@gmail.com
         </td>
       </tr>
       <tr>
-        <td class="center bold small">
+        <td class="center bold header-sub">
           Ph: 94439 14314, 80127 81549, 81482 51567
         </td>
       </tr>
@@ -162,7 +183,7 @@ function generateInvoiceHTML(bill) {
     <table>
       <tr>
         <td style="width:60%">To. M/s ${s(bill.customerName)}</td>
-        <td style="width:40%; background:#1a2a8f; color:white; font-weight:bold; text-align:center;" class="center bold">
+        <td style="width:40%; background:#2a0a8f; color:white; font-weight:bold; text-align:center; letter-spacing:1px;" class="center bold">
           CASH BILL / INVOICE
         </td>
       </tr>
@@ -191,7 +212,7 @@ function generateInvoiceHTML(bill) {
         <td rowspan="3" style="width:25%; padding:0;">
           <table style="height:100%; border-collapse:collapse;">
             <tr>
-              <td class="center bold" style="border-bottom:1.5px solid black;">
+              <td style="text-align:center; font-weight:bold; border-bottom:1.5px solid black;">
                 AMOUNT
               </td>
             </tr>
@@ -199,8 +220,8 @@ function generateInvoiceHTML(bill) {
               <td style="padding:0;">
                 <table style="width:100%; border-collapse:collapse;">
                   <tr>
-                    <td class="center bold" style="border-right:1.5px solid black;">Rs.</td>
-                    <td class="center bold">Ps.</td>
+                    <td style="text-align:center; font-weight:bold; border-right:1.5px solid black;">Rs.</td>
+                    <td style="text-align:center; font-weight:bold;">Ps.</td>
                   </tr>
                 </table>
               </td>
@@ -223,7 +244,7 @@ function generateInvoiceHTML(bill) {
         <td colspan="2">
           Charge per Km Rs. ${fmt2(bill.chargePerKm)} × ${fmt2(chargeableKms)}
         </td>
-        <td style="padding:0;">${amountCell(kmAmount, true)}</td>
+        <td style="padding:0;">${amountCell(kmAmount)}</td>
       </tr>
 
       <tr>
@@ -237,12 +258,12 @@ function generateInvoiceHTML(bill) {
         <td colspan="2">
           Charge per Day Rs. ${fmt2(bill.chargePerDay)}
         </td>
-        <td style="padding:0;">${amountCell(dayAmount, true)}</td>
+        <td style="padding:0;">${amountCell(dayAmount)}</td>
       </tr>
 
       <tr>
         <td colspan="2">Toll Charges Rs. ${fmt2(bill.tollCharges) || ''}</td>
-        <td style="padding:0;">${amountCell(bill.tollCharges, true)}</td>
+        <td style="padding:0;">${amountCell(bill.tollCharges)}</td>
       </tr>
 
       <tr>
@@ -262,17 +283,17 @@ function generateInvoiceHTML(bill) {
 
       <tr>
         <td colspan="2" class="center bold">TOTAL</td>
-        <td style="padding:0;">${amountCell(totalAmount, true)}</td>
+        <td style="padding:0;">${amountCell(totalAmount)}</td>
       </tr>
 
       <tr>
         <td colspan="2" class="right">Less: Advance</td>
-        <td style="padding:0;">${amountCell(advanceAmount, false)}</td>
+        <td style="padding:0;">${amountCell(advanceAmount)}</td>
       </tr>
 
       <tr>
         <td colspan="2" class="center bold">PAYABLE AMOUNT</td>
-        <td style="padding:0;">${amountCell(payableAmount, true)}</td>
+        <td style="padding:0;">${amountCell(payableAmount)}</td>
       </tr>
 
     </table>
@@ -297,6 +318,8 @@ function generateInvoiceHTML(bill) {
       <tr><td>Branch: Trichy Road, Coimbatore</td></tr>
     </table>
 
+  </div>
+  </div>
   </body>
   </html>
   `;
