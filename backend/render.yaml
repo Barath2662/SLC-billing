@@ -2,7 +2,7 @@ services:
   - type: web
     name: slc-billing-api
     runtime: node
-    buildCommand: npm install && npx prisma migrate deploy
+    buildCommand: rm -rf node_modules package-lock.json && npm install && npx prisma migrate deploy
     startCommand: npm start
     plan: free
     envVars:
@@ -21,6 +21,8 @@ services:
         value: "7d"
       - key: PUPPETEER_CACHE_DIR
         value: /opt/render/.cache/puppeteer
+      - key: PUPPETEER_SKIP_DOWNLOAD
+        value: "false"
 
 databases:
   - name: slc-billing-db
