@@ -95,6 +95,14 @@ function generateInvoiceHTML(bill) {
     </table>`;
   };
 
+  const formatTotalHours = (hoursDecimal) => {
+    const hours = Number(hoursDecimal || 0);
+    if (!hours) return '0 hrs 0 mins';
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return `${h} hrs ${m} mins`;
+  };
+
   return `
   <html>
   <head>
@@ -103,14 +111,11 @@ function generateInvoiceHTML(bill) {
 
       body {
         margin: 0;
+        padding: 0;
         background: #f5f5f5;
         font-family: Arial, sans-serif;
         font-size: 12px;
         line-height: 1.2;
-      }
-
-      .page {
-        width: 100%;
         display: flex;
         justify-content: center;
       }
@@ -119,7 +124,7 @@ function generateInvoiceHTML(bill) {
         width: 794px;
         background: white;
         border: 2px solid black;
-        padding: 0;
+        box-sizing: border-box;
       }
 
       table {
@@ -133,10 +138,17 @@ function generateInvoiceHTML(bill) {
       }
 
       td {
-        border: 1.5px solid black;
-        padding: 4px 6px;
+        border: 1.2px solid black;
+        padding: 3px 5px;
         vertical-align: middle;
+        font-size: 12px;
+        line-height: 1.2;
       }
+
+      tr { height: 26px; }
+      .row-tight { height: 22px; }
+      .row-medium { height: 26px; }
+      .row-large { height: 32px; }
 
       .no-border td {
         border: none;
@@ -145,14 +157,16 @@ function generateInvoiceHTML(bill) {
       .center { text-align: center; }
       .right { text-align: right; font-weight: bold; }
       .bold { font-weight: bold; }
+      .left { text-align: left; }
+      .section td { border-top: 2px solid #000; }
 
       .header-title {
-        font-size: 18px;
-        font-weight: bold;
+        font-size: 20px;
+        font-weight: 700;
         letter-spacing: 2px;
       }
 
-      .header-sub {
+      .sub-text {
         font-size: 11px;
         line-height: 1.3;
       }
@@ -160,138 +174,144 @@ function generateInvoiceHTML(bill) {
   </head>
 
   <body>
-  <div class="page">
   <div class="invoice">
 
     <table class="no-border">
-      <tr>
+      <tr class="row-medium">
         <td class="center header-title">SRII LAKSHMI CAB</td>
       </tr>
-      <tr>
-        <td class="center header-sub">
+      <tr class="row-tight">
+        <td class="center sub-text">
           5/12-AB, 5th Street East, Nanjappa Nagar, Boat house West, Singanallur,<br/>
           Coimbatore-641005 | Email: cabsriilakshmi@gmail.com
         </td>
       </tr>
-      <tr>
-        <td class="center bold header-sub">
+      <tr class="row-tight">
+        <td class="center bold sub-text">
           Ph: 94439 14314, 80127 81549, 81482 51567
         </td>
       </tr>
     </table>
 
     <table>
-      <tr>
-        <td style="width:60%">To. M/s ${s(bill.customerName)}</td>
-        <td style="width:40%; background:#2a0a8f; color:white; font-weight:bold; text-align:center; letter-spacing:1px;" class="center bold">
+      <tr class="row-medium">
+        <td style="width:70%">To. M/s ${s(bill.customerName)}</td>
+        <td style="width:30%; background:#2a0a8f; color:white; font-weight:bold; text-align:center; letter-spacing:1px;" class="center bold">
           CASH BILL / INVOICE
         </td>
       </tr>
-      <tr>
+      <tr class="row-large">
         <td>GSTIN : ${s(bill.gstin)}</td>
-        <td>No. ${s(bill.billNumber)}</td>
+        <td style="line-height:1.4;">
+          <b>No:</b> ${s(bill.billNumber)}<br>
+          <b>Date:</b> ${s(date)}<br>
+          <b>Vehicle No:</b> ${s(bill.vehicleNumber)}<br>
+          <b>Trip Date:</b> ${s(tripDate)}
+        </td>
       </tr>
     </table>
 
-    <table>
-      <tr>
+    <table class="section">
+      <tr class="row-medium">
         <td style="width:70%">Travel Details ${s(bill.travelDetails)}</td>
-        <td style="width:30%">Date : ${s(date)}</td>
+        <td style="width:30%"></td>
       </tr>
-      <tr>
+      <tr class="row-medium">
         <td>Vehicle No. ${s(bill.vehicleNumber)}</td>
         <td>Trip Date : ${s(tripDate)}</td>
       </tr>
     </table>
 
     <table>
+      <tr class="row-medium">
+        <td style="width:50%"></td>
+        <td style="width:25%"></td>
+        <td style="width:25%" class="center bold">AMOUNT</td>
+      </tr>
 
-      <tr>
-        <td style="width:50%">Closing Time ${s(bill.closingTime)}</td>
-        <td style="width:25%">Closing Kms ${fmt2(bill.closingKms)}</td>
-        <td rowspan="3" style="width:25%; padding:0;">
-          <table style="height:100%; border-collapse:collapse;">
+      <tr class="row-medium">
+        <td style="width:50%"></td>
+        <td style="width:25%"></td>
+        <td style="padding:0; width:25%;">
+          <table style="width:100%; border-collapse:collapse;">
             <tr>
-              <td style="text-align:center; font-weight:bold; border-bottom:1.5px solid black;">
-                AMOUNT
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:0;">
-                <table style="width:100%; border-collapse:collapse;">
-                  <tr>
-                    <td style="text-align:center; font-weight:bold; border-right:1.5px solid black;">Rs.</td>
-                    <td style="text-align:center; font-weight:bold;">Ps.</td>
-                  </tr>
-                </table>
-              </td>
+              <td style="width:50%; text-align:center; border-right:1.2px solid #000;">Rs.</td>
+              <td style="width:50%; text-align:center;">Ps.</td>
             </tr>
           </table>
         </td>
       </tr>
 
-      <tr>
+      <tr class="row-medium">
+        <td style="width:50%">Closing Time ${s(bill.closingTime)}</td>
+        <td style="width:25%">Closing Kms ${fmt2(bill.closingKms)}</td>
+        <td style="padding:0;"></td>
+      </tr>
+
+      <tr class="row-medium">
         <td>Starting Time ${s(bill.startingTime)}</td>
         <td>Starting Kms ${fmt2(bill.startingKms)}</td>
+        <td style="padding:0;"></td>
       </tr>
 
-      <tr>
-        <td>Total Hours ${fmt2(totalHours)}</td>
+      <tr class="row-medium">
+        <td>Total Hours ${formatTotalHours(totalHours)}</td>
         <td>Total Kms ${fmt2(totalKms)}</td>
+        <td style="padding:0;"></td>
       </tr>
 
-      <tr>
+      <tr class="row-medium">
         <td colspan="2">
           Charge per Km Rs. ${fmt2(bill.chargePerKm)} × ${fmt2(chargeableKms)}
         </td>
         <td style="padding:0;">${amountCell(kmAmount)}</td>
       </tr>
 
-      <tr>
+      <tr class="row-medium">
         <td colspan="2">
           Charge per Hour × ${fmt2(totalHours)}
         </td>
         <td></td>
       </tr>
 
-      <tr>
+      <tr class="row-medium">
         <td colspan="2">
           Charge per Day Rs. ${fmt2(bill.chargePerDay)}
         </td>
         <td style="padding:0;">${amountCell(dayAmount)}</td>
       </tr>
 
-      <tr>
+      <tr class="row-medium">
         <td colspan="2">Toll Charges Rs. ${fmt2(bill.tollCharges) || ''}</td>
         <td style="padding:0;">${amountCell(bill.tollCharges)}</td>
       </tr>
 
-      <tr>
+      <tr class="row-medium">
         <td colspan="2">Night Halt Charges</td>
         <td></td>
       </tr>
 
-      <tr>
+      <tr class="row-medium">
         <td colspan="2">Driver Bata</td>
         <td></td>
       </tr>
 
-      <tr>
+      <tr class="row-medium">
         <td colspan="2">Other Expenses / Permit Charges</td>
         <td></td>
       </tr>
 
-      <tr>
+      <tr class="row-medium">
         <td colspan="2" class="center bold">TOTAL</td>
         <td style="padding:0;">${amountCell(totalAmount)}</td>
       </tr>
 
-      <tr>
-        <td colspan="2" class="right">Less: Advance</td>
+      <tr class="row-medium">
+        <td colspan="2" class="left" style="text-align:right; font-weight:normal;">Less: Advance</td>
         <td style="padding:0;">${amountCell(advanceAmount)}</td>
       </tr>
 
-      <tr>
+      <tr class="row-medium">
         <td colspan="2" class="center bold">PAYABLE AMOUNT</td>
         <td style="padding:0;">${amountCell(payableAmount)}</td>
       </tr>
@@ -299,26 +319,25 @@ function generateInvoiceHTML(bill) {
     </table>
 
     <table>
-      <tr>
+      <tr class="row-large">
         <td style="width:70%">
           <b>Rupees :</b> ${rupeesInWords}
         </td>
-        <td style="width:30%" class="center">
+        <td style="width:30%; height:60px;" class="center bold">
           For SRII LAKSHMI CAB
         </td>
       </tr>
     </table>
 
     <table>
-      <tr><td class="bold">BANK DETAILS</td></tr>
-      <tr><td>ACCOUNT HOLDER: SRII LAKSHMI CAB</td></tr>
-      <tr><td>Account number: 35530200000638</td></tr>
-      <tr><td>Bank name: BANK OF BARODA</td></tr>
-      <tr><td>IFSC CODE: BARB0TRICOI</td></tr>
-      <tr><td>Branch: Trichy Road, Coimbatore</td></tr>
+      <tr class="row-medium"><td colspan="2" class="bold">BANK DETAILS</td></tr>
+      <tr class="row-medium"><td colspan="2">ACCOUNT HOLDER: SRII LAKSHMI CAB</td></tr>
+      <tr class="row-medium"><td colspan="2">Account number: 35530200000638</td></tr>
+      <tr class="row-medium"><td colspan="2">Bank name: BANK OF BARODA</td></tr>
+      <tr class="row-medium"><td colspan="2">IFSC CODE: BARB0TRICOI</td></tr>
+      <tr class="row-medium"><td colspan="2">Branch: Trichy Road, Coimbatore</td></tr>
     </table>
 
-  </div>
   </div>
   </body>
   </html>
