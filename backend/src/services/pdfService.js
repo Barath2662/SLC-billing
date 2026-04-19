@@ -84,7 +84,6 @@ function generateInvoiceHTML(bill) {
   const advanceAmount = bill.advance != null ? Number(bill.advance) : 0;
   const payableAmount = bill.payableAmount != null ? Number(bill.payableAmount) : Math.max(0, totalAmount - advanceAmount);
   const rupeesInWords = s(bill.rupeesInWords || numberToWords(totalAmount));
-  const qrImageSrc = s(process.env.QR_IMAGE_SRC || '/static/qr.png');
   const amountCell = (amount) => {
     const rs = amount != null && amount !== '' ? fmt2(amount) : '';
     const ps = rs ? '00' : '';
@@ -130,7 +129,6 @@ function generateInvoiceHTML(bill) {
 
       .invoice {
         width: 794px;
-        min-height: 1123px;
         background: white;
         border: 2px solid black;
         box-sizing: border-box;
@@ -326,18 +324,13 @@ function generateInvoiceHTML(bill) {
 
     <table>
       <tr>
-        <td style="width:70%; vertical-align:top;">
-          <b>Rupees :</b> ${rupeesInWords}
-        </td>
-        <td style="width:30%;" class="center bold">
-          For SRII LAKSHMI CAB
-        </td>
+        <td><b>Rupees :</b> ${rupeesInWords}</td>
       </tr>
     </table>
 
     <table class="footer">
       <tr>
-        <td style="width:65%; vertical-align:top; padding:8px;">
+        <td style="width:50%; vertical-align:top; padding:8px;">
           <b>BANK DETAILS</b><br><br>
           ACCOUNT HOLDER: SRII LAKSHMI CAB<br>
           Account number: 35530200000638<br>
@@ -345,13 +338,14 @@ function generateInvoiceHTML(bill) {
           IFSC CODE: BARB0TRICOI<br>
           Branch: Trichy Road, Coimbatore<br>
           UPI ID: sriilakshmicab@upi
-          <div style="margin-top:10px;">
-            <img src="${qrImageSrc}" style="width:110px; height:110px;"/>
-          </div>
         </td>
-        <td style="width:35%; vertical-align:bottom; text-align:center; padding:8px;">
-          <div style="height:100px;"></div>
-          <b>For SRII LAKSHMI CAB</b>
+        <td style="width:20%; text-align:center; vertical-align:top; padding:8px;">
+          <img src="/static/qr.png" style="width:120px; height:120px;"/>
+        </td>
+        <td style="width:30%; vertical-align:bottom; text-align:center; padding:8px;">
+          <div style="height:120px; border:1.5px solid black; display:flex; align-items:flex-end; justify-content:center;">
+            <span style="margin-bottom:6px;"><b>Signature</b></span>
+          </div>
         </td>
       </tr>
     </table>
