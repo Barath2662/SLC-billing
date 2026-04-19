@@ -139,7 +139,7 @@ function generateInvoiceHTML(bill) {
 
       td {
         border: 1.2px solid black;
-        padding: 4px 5px;
+        padding: 4px 6px;
         vertical-align: middle;
         font-size: 12px;
         line-height: 1.2;
@@ -232,46 +232,27 @@ function generateInvoiceHTML(bill) {
 
     <table class="section">
       <tr class="row-medium">
-        <td colspan="2">Travel Details ${s(bill.travelDetails)}</td>
+        <td colspan="2" style="padding:6px; font-weight:normal;">Travel Details <b>${s(bill.travelDetails)}</b></td>
       </tr>
     </table>
 
     <table>
       <tr class="row-medium">
-        <td style="width:50%"></td>
-        <td style="width:25%"></td>
+        <td style="width:50%">Closing Time&nbsp;&nbsp;&nbsp; ${s(bill.closingTime)}</td>
+        <td style="width:25%">Closing Kms&nbsp;&nbsp; ${s(bill.closingKms)}</td>
         <td style="width:25%" class="center bold">AMOUNT</td>
       </tr>
 
       <tr class="row-medium">
-        <td style="width:50%"></td>
-        <td style="width:25%"></td>
-        <td style="padding:0; width:25%;">
-          <table style="width:100%; border-collapse:collapse;">
-            <tr>
-              <td style="width:50%; text-align:center; border-right:1.2px solid #000;">Rs.</td>
-              <td style="width:50%; text-align:center;">Ps.</td>
-            </tr>
-          </table>
-        </td>
+        <td>Starting Time&nbsp;&nbsp;&nbsp; ${s(bill.startingTime)}</td>
+        <td>Starting Kms&nbsp;&nbsp; ${s(bill.startingKms)}</td>
+        <td class="center bold">Rs.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Ps.</td>
       </tr>
 
       <tr class="row-medium">
-        <td style="width:50%">Closing Time ${s(bill.closingTime)}</td>
-        <td style="width:25%">Closing Kms ${fmt2(bill.closingKms)}</td>
-        <td style="padding:0;"></td>
-      </tr>
-
-      <tr class="row-medium">
-        <td>Starting Time ${s(bill.startingTime)}</td>
-        <td>Starting Kms ${fmt2(bill.startingKms)}</td>
-        <td style="padding:0;"></td>
-      </tr>
-
-      <tr class="row-medium">
-        <td>Total Hours ${formatTotalHours(totalHours)}</td>
-        <td>Total Kms ${fmt2(totalKms)}</td>
-        <td style="padding:0;"></td>
+        <td>Total Hours&nbsp;&nbsp; ${formatTotalHours(totalHours)}</td>
+        <td>Total Kms&nbsp;&nbsp; ${s(totalKms)}</td>
+        <td></td>
       </tr>
 
       <tr class="row-medium">
