@@ -172,14 +172,25 @@ function generateInvoiceHTML(bill) {
       .section td { border-top: 2px solid #000; }
 
       .header-title {
-        font-size: 20px;
-        font-weight: 700;
+        font-family: "Times New Roman", serif;
+        font-size: 22px;
+        font-weight: bold;
         letter-spacing: 2px;
+        text-align: center;
       }
 
-      .sub-text {
-        font-size: 11px;
-        line-height: 1.3;
+      .header-sub {
+        font-family: "Times New Roman", serif;
+        font-size: 13px;
+        text-align: center;
+        line-height: 1.4;
+      }
+
+      .header-contact {
+        font-family: "Times New Roman", serif;
+        font-size: 13px;
+        font-weight: bold;
+        text-align: center;
       }
 
       .footer td {
@@ -194,16 +205,16 @@ function generateInvoiceHTML(bill) {
 
     <table class="no-border">
       <tr class="row-medium">
-        <td class="center header-title">SRII LAKSHMI CAB</td>
+        <td class="header-title">SRII LAKSHMI CAB</td>
       </tr>
       <tr class="row-tight">
-        <td class="center sub-text">
+        <td class="header-sub">
           5/12-AB, 5th Street East, Nanjappa Nagar, Boat house West, Singanallur,<br/>
           Coimbatore-641005 | Email: cabsriilakshmi@gmail.com
         </td>
       </tr>
       <tr class="row-tight">
-        <td class="center bold sub-text">
+        <td class="header-contact">
           Ph: 94439 14314, 80127 81549, 81482 51567
         </td>
       </tr>
@@ -214,7 +225,7 @@ function generateInvoiceHTML(bill) {
         <td style="width:65%; vertical-align:top; padding:6px;">
           <div><b>To. M/s</b> ${s(bill.customerName)}</div>
           <div style="margin-top:6px;">GSTIN :</div>
-          <div style="margin-top:10px;">Travel Details <b>${s(bill.travelDetails)}</b></div>
+          <div style="margin-top:10px;">Travel Details : <b>${s(bill.travelDetails)}</b></div>
         </td>
         <td style="width:35%; padding:0;">
           <table style="width:100%; border-collapse:collapse;">
@@ -225,7 +236,7 @@ function generateInvoiceHTML(bill) {
             </tr>
             <tr>
               <td style="padding:4px;">
-                <b>No:</b> <span style="font-size:18px;">${s(bill.billNumber)}</span>
+                <b>No :</b> <span style="font-size:18px;">${s(bill.billNumber)}</span>
               </td>
             </tr>
             <tr>
@@ -250,61 +261,61 @@ function generateInvoiceHTML(bill) {
 
     <table>
       <tr class="row-medium">
-        <td style="width:50%">Closing Time&nbsp;&nbsp;&nbsp; ${s(bill.closingTime)}</td>
-        <td style="width:25%">Closing Kms&nbsp;&nbsp; ${s(bill.closingKms)}</td>
+        <td style="width:50%">Closing Time : ${s(bill.closingTime)}</td>
+        <td style="width:25%">Closing Kms : ${s(bill.closingKms)}</td>
         <td style="width:25%" class="center bold">AMOUNT</td>
       </tr>
 
       <tr class="row-medium">
-        <td>Starting Time&nbsp;&nbsp;&nbsp; ${s(bill.startingTime)}</td>
-        <td>Starting Kms&nbsp;&nbsp; ${s(bill.startingKms)}</td>
+        <td>Starting Time : ${s(bill.startingTime)}</td>
+        <td>Starting Kms : ${s(bill.startingKms)}</td>
         <td class="center bold">Rs.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Ps.</td>
       </tr>
 
       <tr class="row-medium">
-        <td>Total Hours&nbsp;&nbsp; ${formatTotalHours(totalHours)}</td>
-        <td>Total Kms&nbsp;&nbsp; ${s(totalKms)}</td>
+        <td>Total Hours : ${formatTotalHours(totalHours)}</td>
+        <td>Total Kms : ${s(totalKms)}</td>
         <td></td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">
-          Charge per Km Rs. ${fmt2(bill.chargePerKm)} × ${fmt2(chargeableKms)}
+          Charge per Km : Rs. ${fmt2(bill.chargePerKm)} × ${fmt2(chargeableKms)}
         </td>
         <td style="padding:0;">${amountCell(kmAmount)}</td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">
-          Charge per Hour × ${fmt2(totalHours)}
+          Charge per Hour : ${fmt2(totalHours)}
         </td>
         <td></td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">
-          Charge per Day Rs. ${fmt2(bill.chargePerDay)}
+          Charge per Day : Rs. ${fmt2(bill.chargePerDay)}
         </td>
         <td style="padding:0;">${amountCell(dayAmount)}</td>
       </tr>
 
       <tr class="row-medium">
-        <td colspan="2">Toll Charges Rs. ${fmt2(bill.tollCharges) || ''}</td>
+        <td colspan="2">Toll Charges : Rs. ${fmt2(bill.tollCharges) || ''}</td>
         <td style="padding:0;">${amountCell(bill.tollCharges)}</td>
       </tr>
 
       <tr class="row-medium">
-        <td colspan="2">Night Halt Charges</td>
+        <td colspan="2">Night Halt Charges :</td>
         <td></td>
       </tr>
 
       <tr class="row-medium">
-        <td colspan="2">Driver Bata</td>
+        <td colspan="2">Driver Bata :</td>
         <td></td>
       </tr>
 
       <tr class="row-medium">
-        <td colspan="2">Other Expenses / Permit Charges</td>
+        <td colspan="2">Other Expenses / Permit Charges :</td>
         <td></td>
       </tr>
 
