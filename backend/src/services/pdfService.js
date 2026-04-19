@@ -351,10 +351,10 @@ function generateInvoiceHTML(bill) {
           Bank name: BANK OF BARODA<br>
           IFSC CODE: BARB0TRICOI<br>
           Branch: Trichy Road, Coimbatore<br>
-          UPI ID: sriilakshmicab@upi
+          UPI ID: srii94439143638@barodampay
         </td>
         <td style="width:20%; text-align:center; vertical-align:top; padding:8px;">
-          <img src="/static/qr.png" style="width:120px; height:120px;"/>
+          <img src="/static/qr.jpeg" style="width:120px; height:120px;"/>
         </td>
         <td style="width:30%; padding:8px; vertical-align:top; text-align:center;">
           <div style="height:120px; border:1.5px solid black; display:flex; align-items:flex-start; justify-content:center;">
