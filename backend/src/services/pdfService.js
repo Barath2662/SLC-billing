@@ -1,3 +1,4 @@
+const fs = require('fs');
 const puppeteer = require('puppeteer');
 const { formatHours } = require('../utils/calculations');
 
@@ -570,6 +571,23 @@ function generateInvoiceHTML(bill) {
 async function generatePDF(bill) {
   const html = generateInvoiceHTML(bill);
 
+  const resolveExecutablePath = () => {
+    const configuredPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    if (configuredPath) {
+      if (fs.existsSync(configuredPath)) return configuredPath;
+      console.warn(`[pdf] Ignoring invalid PUPPETEER_EXECUTABLE_PATH: ${configuredPath}`);
+    }
+
+    try {
+      const detectedPath = puppeteer.executablePath();
+      if (detectedPath && fs.existsSync(detectedPath)) return detectedPath;
+    } catch (err) {
+      // Fall through to Puppeteer's internal browser resolution.
+    }
+
+    return undefined;
+  };
+
   const launchOptions = {
     headless: true,
     args: [
@@ -580,19 +598,23 @@ async function generatePDF(bill) {
     ],
   };
 
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-  } else {
-    try {
-      launchOptions.executablePath = puppeteer.executablePath();
-    } catch (err) {
-      // Let Puppeteer auto-resolve the browser if executablePath is unavailable.
-    }
+  const executablePath = resolveExecutablePath();
+  if (executablePath) {
+    launchOptions.executablePath = executablePath;
   }
 
   let browser;
   try {
-    browser = await puppeteer.launch(launchOptions);
+    try {
+      browser = await puppeteer.launch(launchOptions);
+    } catch (err) {
+      if (!launchOptions.executablePath) throw err;
+      const retryOptions = { ...launchOptions };
+      delete retryOptions.executablePath;
+      console.warn('[pdf] Launch failed with executablePath, retrying with auto-resolved browser');
+      browser = await puppeteer.launch(retryOptions);
+    }
+
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
     await page.emulateMediaType('screen');
