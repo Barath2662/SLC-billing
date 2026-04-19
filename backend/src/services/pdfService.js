@@ -1,4 +1,4 @@
-const puppeteer = require('puppeteer');
+const PDFDocument = require('pdfkit');
 const { formatHours } = require('../utils/calculations');
 
 function numberToWords(num) {
@@ -314,27 +314,430 @@ function generateInvoiceHTML(bill) {
 }
 
 
+
+function generateInvoiceHTML(bill) {
+  const n = (v) => v != null ? Number(v) : 0;
+  const s = (val) => val || '';
+  const fmt = (val) => (val != null && Number(val) !== 0) ? Number(val).toFixed(2) : '';
+
+  const chargeableKms = bill.chargeableKms != null ? n(bill.chargeableKms) : Math.max(0, n(bill.totalKms) - n(bill.freeKms));
+  const chargePerKmAmt = Math.round(chargeableKms * n(bill.chargePerKm) * 100) / 100;
+  const chargePerHourAmt = Math.round(n(bill.totalHours) * n(bill.chargePerHour) * 100) / 100;
+
+  const dayCount = (() => {
+    if (!bill.multipleDays || !bill.tripDate || !bill.tripEndDate) return 1;
+    const diff = Math.round((new Date(bill.tripEndDate) - new Date(bill.tripDate)) / (1000 * 60 * 60 * 24));
+    return Math.max(1, diff + 1);
+  })();
+  const chargePerDayAmt = Math.round(n(bill.chargePerDay) * dayCount * 100) / 100;
+
+  const splitAmt = (val) => {
+    const num = Math.round(n(val) * 100) / 100;
+    if (num === 0) return ['', ''];
+    const rs = Math.floor(num);
+    const ps = Math.round((num - rs) * 100);
+    return [rs.toString(), ps > 0 ? ps.toString().padStart(2, '0') : '00'];
+  };
+
+  // Merge Rs+Ps into one empty cell when amount is zero
+  const tdAmt = (val) => {
+    const [rs, ps] = splitAmt(val);
+    if (!rs && !ps) {
+      return `<td colspan="2" style="border:1px solid #000;"></td>`;
+    }
+    return `<td style="border:1px solid #000;padding:3px 6px;text-align:right;font-size:12px;font-weight:bold;">${rs}</td>
+            <td style="border:1px solid #000;padding:3px 4px;text-align:right;font-size:12px;font-weight:bold;">${ps}</td>`;
+  };
+
+  const chargeRow = (labelHtml, val) => `
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:8px 10px;font-size:11px;">${labelHtml}</td>
+      ${tdAmt(val)}
+    </tr>`;
+
+  const tripDateDisplay = bill.multipleDays
+    ? `${formatDate(bill.tripDate)} \u2013 ${formatDate(bill.tripEndDate)}`
+    : formatDate(bill.tripDate);
+
+  const dottedVal = (val, width) =>
+    `<span style="display:inline-block;min-width:${width || 55}px;border-bottom:1px dotted #444;vertical-align:bottom;padding:0 2px;text-align:center;">${val}</span>`;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @page { size: A4 portrait; margin: 10mm; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:Arial,sans-serif; font-size:12px; color:#000; background:#fff; }
+    .bill {
+      width: 190mm;
+      margin: 0 auto;
+      border: 2px solid #000;
+      display: flex;
+      flex-direction: column;
+    }
+    .charges-wrap { }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { vertical-align: middle; }
+  </style>
+</head>
+<body>
+<div class="bill">
+
+  <!-- HEADER -->
+  <table style="border-bottom:2px solid #000;">
+    <tr>
+      <td style="text-align:center;padding:8px 14px;">
+        <div style="font-size:24px;font-weight:900;letter-spacing:3px;font-family:'Arial Black',Arial,sans-serif;">SRII LAKSHMI CAB</div>
+        <div style="font-size:9px;margin-top:2px;line-height:1.5;">
+          5/12-AB, 5th Street East, Nanjappa Nagar, Boat house West, Singanallur,<br>
+          Coimbatore-641005. | Email : cabsriilakshmi@gmail.com
+        </div>
+        <div style="font-size:11px;font-weight:bold;margin-top:2px;">Ph : 94439 14314, 80127 81549, 81482 51567</div>
+     <!--   <div style="font-size:10px;font-weight:bold;margin-top:3px;">
+          GSTIN :
+        </div> -->
+      </td>
+    </tr>
+  </table>
+
+  <!-- TO M/S + GSTIN (customer) + CASH BILL/INVOICE -->
+  <table style="border-bottom:1px solid #000;">
+    <tr>
+      <td style="padding:5px 10px;border-right:1px solid #000;vertical-align:top;">
+        <div style="display:flex;align-items:flex-end;gap:4px;margin-bottom:4px;">
+          <span style="font-size:11px;white-space:nowrap;">To. M/s</span>
+          <span style="flex:1;padding-bottom:1px;font-weight:bold;font-size:12px;">&nbsp;${s(bill.customerName)}</span>
+        </div>
+        <div style="min-height:14px;margin-bottom:4px;"></div>
+        <div style="display:flex;align-items:flex-end;gap:4px;">
+          <span style="font-size:10px;white-space:nowrap;">GSTIN :</span>
+          <span style="flex:1;padding-bottom:1px;font-size:11px;font-weight:bold;">&nbsp;${s(bill.gstin)}</span>
+        </div>
+      </td>
+      <td style="width:38%;vertical-align:top;">
+        <div style="background:#00008B;color:#fff;text-align:center;padding:6px;font-weight:bold;font-size:14px;letter-spacing:1px;border-bottom:1px solid #000;">
+          CASH BILL / INVOICE
+        </div>
+        <div style="padding:4px 12px;font-size:11px;">
+          No.&nbsp;&nbsp;<span style="font-size:24px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;">${s(bill.billNumber)}</span>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- TRAVELS DETAILS + DATE / VEHICLE / TRIP DATE -->
+  <table style="border-bottom:1px solid #000;">
+    <tr>
+      <td style="padding:5px 10px;border-right:1px solid #000;vertical-align:top;">
+        <div style="display:flex;align-items:flex-start;gap:4px;padding-bottom:3px;">
+          <span style="font-size:11px;white-space:nowrap;">Travel Details</span>
+          <span style="font-weight:bold;font-size:12px;word-break:break-word;">&nbsp;${s(bill.travelDetails)}</span>
+        </div>
+      </td>
+      <td style="width:38%;vertical-align:top;">
+        <table>
+          <tr><td style="border-bottom:1px solid #000;padding:4px 10px;font-size:11px;"><b>Date :</b>&nbsp;${formatDate(bill.date)}</td></tr>
+          <tr><td style="border-bottom:1px solid #000;padding:4px 10px;font-size:11px;"><b>Vehicle No.</b>&nbsp;${s(bill.vehicleNumber)}</td></tr>
+          <tr><td style="padding:4px 10px;font-size:11px;"><b>Trip Date :</b>&nbsp;${tripDateDisplay}</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- CHARGES TABLE -->
+  <div class="charges-wrap">
+  <table>
+    <colgroup>
+      <col style="width:44%;"/><col style="width:30%;"/><col style="width:14%;"/><col style="width:12%;"/>
+    </colgroup>
+
+    <tr>
+      <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
+        Closing Time ${dottedVal(to12hr(bill.closingTime), 72)}
+      </td>
+      <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
+        Closing Kms ${dottedVal(fmt(bill.closingKms), 65)}
+      </td>
+      <td colspan="2" style="border:1px solid #000;padding:3px 4px;font-weight:bold;text-align:center;font-size:13px;">AMOUNT</td>
+    </tr>
+
+    <tr>
+      <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
+        Starting Time ${dottedVal(to12hr(bill.startingTime), 72)}
+      </td>
+      <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
+        Starting Kms ${dottedVal(fmt(bill.startingKms), 65)}
+      </td>
+      <td rowspan="2" style="border:1px solid #000;padding:3px 4px;font-weight:bold;text-align:center;font-size:12px;">Rs.</td>
+      <td rowspan="2" style="border:1px solid #000;padding:3px 4px;font-weight:bold;text-align:center;font-size:12px;">Ps.</td>
+    </tr>
+
+    <tr>
+      <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
+        Total Hours ${dottedVal(formatHours(bill.totalHours), 80)}
+      </td>
+      <td style="border:1px solid #000;padding:5px 10px;font-size:11px;">
+        Total Kms ${dottedVal(fmt(bill.totalKms), 80)}
+      </td>
+    </tr>
+
+    <tr><td colspan="4" style="border:1px solid #000;height:10px;"></td></tr>
+
+    ${chargeRow(
+      `Charge per Km Rs. ${dottedVal(fmt(bill.chargePerKm) || '', 50)}&nbsp; Ps. ${dottedVal('', 28)}&nbsp; &times; ${dottedVal(chargeableKms > 0 ? fmt(chargeableKms) : (fmt(bill.totalKms) || ''), 50)}&nbsp; Kms${n(bill.freeKms) > 0 ? `&nbsp;&nbsp; Free Kms ${dottedVal(fmt(bill.freeKms), 45)}` : ''}`,
+      chargePerKmAmt
+    )}
+
+    ${chargeRow(
+      `Charge per Hour Rs. ${dottedVal(fmt(bill.chargePerHour) || '', 50)}&nbsp; Ps. ${dottedVal('', 28)}&nbsp; &times; ${dottedVal(formatHours(bill.totalHours) || '', 70)}`,
+      chargePerHourAmt
+    )}
+
+    ${chargeRow(
+      `Charge per Day Rs. ${dottedVal(fmt(bill.chargePerDay) || '', 68)}&nbsp;&nbsp; For ${dottedVal(dayCount > 1 ? String(dayCount) : '', 38)}&nbsp; days`,
+      chargePerDayAmt
+    )}
+
+    ${chargeRow(
+      `Toll Charges Rs. ${dottedVal(fmt(bill.tollCharges) || '', 80)}`,
+      n(bill.tollCharges)
+    )}
+
+    ${chargeRow(
+      `Night Halt Charges Rs. ${dottedVal(fmt(bill.nightHaltCharges) || '', 70)}&nbsp;&nbsp; Total Nights ${dottedVal('', 55)}`,
+      n(bill.nightHaltCharges)
+    )}
+
+    ${chargeRow(
+      `Driver Bata per Day Rs. ${dottedVal(fmt(bill.driverBata) || '', 70)}&nbsp;&nbsp; Total Days ${dottedVal('', 55)}`,
+      n(bill.driverBata)
+    )}
+
+    ${chargeRow(
+      `Other Expenses ${dottedVal(fmt(bill.otherExpenses) || '', 78)}&nbsp;&nbsp; Permit Charges ${dottedVal(fmt(bill.permitCharges) || '', 78)}`,
+      n(bill.otherExpenses) + n(bill.permitCharges)
+    )}
+
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:7px 10px;font-size:14px;font-weight:bold;text-align:right;letter-spacing:2px;">TOTAL</td>
+      ${tdAmt(bill.totalAmount)}
+    </tr>
+
+    ${n(bill.advance) > 0 ? `
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:7px 10px;font-size:12px;text-align:right;">Less: Advance</td>
+      ${tdAmt(n(bill.advance))}
+    </tr>
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:7px 10px;font-size:14px;font-weight:bold;text-align:right;letter-spacing:2px;">PAYABLE AMOUNT</td>
+      ${tdAmt(n(bill.payableAmount) || Math.max(0, n(bill.totalAmount) - n(bill.advance)))}
+    </tr>
+    ` : ''}
+
+    <!-- FOOTER — same table, same colgroup → borders align perfectly -->
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:8px 10px 2px 10px;vertical-align:top;">
+        <div style="display:flex;align-items:flex-start;gap:4px;">
+          <span style="font-size:13px;font-weight:bold;white-space:nowrap;">Rupees :</span>
+          <span style="flex:1;font-weight:bold;font-style:italic;font-size:13px;">&nbsp;${s(bill.rupeesInWords)}</span>
+        </div>
+        <div style="border-top:1px solid #000;margin:8px 0 6px 0;"></div>
+        <div style="margin-top:0;font-size:11px;line-height:1.4;margin-bottom:0;">
+          <div style="font-weight:bold;margin-bottom:2px;">BANK DETAILS</div>
+          <div><b>ACCOUNT HOLDER:</b> SRII LAKSHMI CAB</div>
+          <div><b>Account number:</b> 35530200000638</div>
+          <div><b>Bank name:</b> BANK OF BARODA</div>
+          <div><b>IFCS CODE:</b> BARB0TRICOI</div>
+          <div><b>Branch:</b> Trichy Road, Coimbatore</div>
+        </div>
+      </td>
+      <td colspan="2" style="border:1px solid #000;text-align:center;font-weight:bold;font-size:13px;font-style:italic;vertical-align:top;padding:0;">
+        <div style="border-bottom:1px solid #000;padding:8px 4px;">For SRII LAKSHMI CAB</div>
+        <div style="min-height:120px;"></div>
+      </td>
+    </tr>
+  </table>
+  </div>
+
+</div>
+</body>
+</html>`;
+}
+
+
 async function generatePDF(bill) {
-  const html = generateInvoiceHTML(bill);
-  
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 40,
+        bufferPages: true
+      });
+
+      // Helper functions
+      const n = (v) => v != null ? Number(v) : 0;
+      const s = (val) => val || '';
+      const fmt = (val) => (val != null && Number(val) !== 0) ? Number(val).toFixed(2) : '';
+
+      function formatDate(date) {
+        if (!date) return '';
+        const d = new Date(date);
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      }
+
+      function to12hr(time24) {
+        if (!time24) return '';
+        const [h, m] = time24.split(':').map(Number);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+      }
+
+      // Header
+      doc.fontSize(20).font('Helvetica-Bold').text('SRII LAKSHMI CAB', { align: 'center' });
+      doc.fontSize(9).font('Helvetica').text('5/12-AB, 5th Street East, Nanjappa Nagar, Boat house West, Singanallur,', { align: 'center' });
+      doc.fontSize(9).text('Coimbatore-641005. | Email : cabsriilakshmi@gmail.com', { align: 'center' });
+      doc.fontSize(10).font('Helvetica-Bold').text('Ph : 94439 14314, 80127 81549, 81482 51567', { align: 'center' });
+      doc.moveTo(40, doc.y + 5).lineTo(560, doc.y + 5).stroke();
+      doc.moveDown(0.3);
+
+      // Bill details section
+      doc.fontSize(11).font('Helvetica-Bold').text('To. M/s');
+      doc.fontSize(12).text(s(bill.customerName));
+      doc.fontSize(10).text(`GSTIN: ${s(bill.gstin)}`);
+      doc.moveUp(2.5);
+      doc.fontSize(14).font('Helvetica-Bold').text('CASH BILL / INVOICE', 350);
+      doc.fontSize(11).text(`Bill No: ${s(bill.billNumber)}`, 350);
+      doc.moveDown(0.5);
+
+      // Travel details
+      doc.fontSize(10).font('Helvetica').text(`Travel Details: ${s(bill.travelDetails)}`);
+      doc.fontSize(10).text(`Date: ${formatDate(bill.date)}`);
+      doc.fontSize(10).text(`Vehicle No: ${s(bill.vehicleNumber)}`);
+      
+      const tripDateDisplay = bill.multipleDays
+        ? `${formatDate(bill.tripDate)} – ${formatDate(bill.tripEndDate)}`
+        : formatDate(bill.tripDate);
+      doc.fontSize(10).text(`Trip Date: ${tripDateDisplay}`);
+      doc.moveDown(0.3);
+
+      // Times and KMs
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Starting Time: ${to12hr(bill.startingTime)}`);
+      doc.text(`Closing Time: ${to12hr(bill.closingTime)}`);
+      doc.text(`Starting Kms: ${fmt(bill.startingKms)}`);
+      doc.text(`Closing Kms: ${fmt(bill.closingKms)}`);
+      doc.text(`Total Kms: ${fmt(bill.totalKms)}`);
+      doc.text(`Total Hours: ${formatHours(bill.totalHours)}`);
+      doc.moveDown(0.3);
+      doc.moveTo(40, doc.y).lineTo(560, doc.y).stroke();
+      doc.moveDown(0.3);
+
+      // Charges table
+      const chargeableKms = bill.chargeableKms != null ? n(bill.chargeableKms) : Math.max(0, n(bill.totalKms) - n(bill.freeKms));
+      const chargePerKmAmt = Math.round(chargeableKms * n(bill.chargePerKm) * 100) / 100;
+      const chargePerHourAmt = Math.round(n(bill.totalHours) * n(bill.chargePerHour) * 100) / 100;
+      
+      const dayCount = (() => {
+        if (!bill.multipleDays || !bill.tripDate || !bill.tripEndDate) return 1;
+        const diff = Math.round((new Date(bill.tripEndDate) - new Date(bill.tripDate)) / (1000 * 60 * 60 * 24));
+        return Math.max(1, diff + 1);
+      })();
+      const chargePerDayAmt = Math.round(n(bill.chargePerDay) * dayCount * 100) / 100;
+
+      doc.fontSize(9).font('Helvetica');
+      
+      const addChargeLine = (label, amount) => {
+        doc.text(label, 50, undefined, { width: 380 });
+        doc.moveUp().text(`Rs. ${Math.floor(amount)}  Ps. ${String(Math.round((amount - Math.floor(amount)) * 100)).padStart(2, '0')}`, 450);
+        doc.moveDown();
+      };
+
+      if (n(bill.chargePerKm) > 0) {
+        addChargeLine(`Charge per Km Rs. ${fmt(bill.chargePerKm)} × ${chargeableKms > 0 ? fmt(chargeableKms) : fmt(bill.totalKms)} Kms${n(bill.freeKms) > 0 ? ` (Free Kms: ${fmt(bill.freeKms)})` : ''}`, chargePerKmAmt);
+      }
+      if (n(bill.chargePerHour) > 0) {
+        addChargeLine(`Charge per Hour Rs. ${fmt(bill.chargePerHour)} × ${formatHours(bill.totalHours)}`, chargePerHourAmt);
+      }
+      if (n(bill.chargePerDay) > 0) {
+        addChargeLine(`Charge per Day Rs. ${fmt(bill.chargePerDay)} × ${dayCount} days`, chargePerDayAmt);
+      }
+      if (n(bill.tollCharges) > 0) {
+        addChargeLine('Toll Charges', n(bill.tollCharges));
+      }
+      if (n(bill.nightHaltCharges) > 0) {
+        addChargeLine('Night Halt Charges', n(bill.nightHaltCharges));
+      }
+      if (n(bill.driverBata) > 0) {
+        addChargeLine('Driver Bata per Day', n(bill.driverBata));
+      }
+      if (n(bill.otherExpenses) > 0 || n(bill.permitCharges) > 0) {
+        addChargeLine(`Other Expenses / Permit Charges`, n(bill.otherExpenses) + n(bill.permitCharges));
+      }
+
+      doc.moveTo(40, doc.y).lineTo(560, doc.y).stroke();
+      doc.moveDown(0.2);
+
+      // Total
+      doc.fontSize(12).font('Helvetica-Bold');
+      const totalRs = Math.floor(bill.totalAmount);
+      const totalPs = String(Math.round((bill.totalAmount - totalRs) * 100)).padStart(2, '0');
+      doc.text('TOTAL', 50);
+      doc.moveUp().text(`Rs. ${totalRs}  Ps. ${totalPs}`, 450);
+      doc.moveDown();
+
+      // Payable amount if advance given
+      if (n(bill.advance) > 0) {
+        doc.fontSize(10).font('Helvetica');
+        doc.text('Less: Advance', 50);
+        const advRs = Math.floor(bill.advance);
+        const advPs = String(Math.round((bill.advance - advRs) * 100)).padStart(2, '0');
+        doc.moveUp().text(`Rs. ${advRs}  Ps. ${advPs}`, 450);
+        doc.moveDown();
+
+        doc.fontSize(12).font('Helvetica-Bold');
+        const payRs = Math.floor(bill.payableAmount || Math.max(0, bill.totalAmount - bill.advance));
+        const payPs = String(Math.round((bill.payableAmount - payRs) * 100)).padStart(2, '0');
+        doc.text('PAYABLE AMOUNT', 50);
+        doc.moveUp().text(`Rs. ${payRs}  Ps. ${payPs}`, 450);
+        doc.moveDown();
+      }
+
+      doc.moveTo(40, doc.y).lineTo(560, doc.y).stroke();
+      doc.moveDown(0.3);
+
+      // Rupees in words
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Rupees: ${s(bill.rupeesInWords)}`);
+      doc.moveDown(0.3);
+
+      // Bank details
+      doc.fontSize(9).font('Helvetica-Bold').text('BANK DETAILS');
+      doc.fontSize(9).font('Helvetica');
+      doc.text('ACCOUNT HOLDER: SRII LAKSHMI CAB');
+      doc.text('Account number: 35530200000638');
+      doc.text('Bank name: BANK OF BARODA');
+      doc.text('IFCS CODE: BARB0TRICOI');
+      doc.text('Branch: Trichy Road, Coimbatore');
+
+      doc.moveUp(5);
+      doc.fontSize(10).font('Helvetica-Bold').text('For SRII LAKSHMI CAB', 380);
+
+      // Collect PDF to buffer
+      const chunks = [];
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => {
+        resolve(Buffer.concat(chunks));
+      });
+      doc.on('error', reject);
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
   });
-  
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  
-  const pdfBuffer = await page.pdf({
-    format: 'A4',
-    printBackground: true,
-    preferCSSPageSize: true,
-    margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
-  });
-  
-  await browser.close();
-  // Puppeteer v21+ returns Uint8Array; convert to Buffer so Express sends raw bytes
-  return Buffer.from(pdfBuffer);
 }
 
 module.exports = { generatePDF, generateInvoiceHTML, numberToWords };
