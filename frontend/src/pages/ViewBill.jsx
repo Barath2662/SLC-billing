@@ -25,70 +25,71 @@ export default function ViewBill() {
   }, [billNumber]);
 
   const createPdfBlobFromInvoiceHtml = async () => {
-    if (!invoiceHtml) {
+    if (!iframeRef.current) {
       throw new Error('Invoice preview not ready');
     }
 
+    const iframe = iframeRef.current;
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    
+    if (!iframeDoc) {
+      throw new Error('Cannot access iframe document');
+    }
+
+    const billElement = iframeDoc.querySelector('.bill');
+    if (!billElement) {
+      throw new Error('Invoice markup missing .bill root');
+    }
+
+    // Use html2pdf with simpler, more reliable settings
     return new Promise((resolve, reject) => {
-      // Create a temporary iframe
-      const tempFrame = document.createElement('iframe');
-      tempFrame.style.position = 'fixed';
-      tempFrame.style.left = '-9999px';
-      tempFrame.style.top = '-9999px';
-      tempFrame.style.width = '210mm';
-      tempFrame.style.height = '297mm';
-      tempFrame.style.border = 'none';
-      document.body.appendChild(tempFrame);
-
-      // Write invoice HTML to the iframe
-      const frameDoc = tempFrame.contentDocument || tempFrame.contentWindow.document;
-      frameDoc.open();
-      frameDoc.write(invoiceHtml);
-      frameDoc.close();
-
-      // Wait for iframe to fully render
-      setTimeout(() => {
-        try {
-          const billElement = frameDoc.querySelector('.bill');
-          if (!billElement) {
-            throw new Error('Invoice markup missing .bill root');
-          }
-
-          // Generate PDF from the iframe's rendered content
+      html2pdf()
+        .set({
+          margin: [0, 0, 0, 0],
+          filename: `invoice-${billNumber}.pdf`,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: {
+            scale: 3,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: true,
+            allowTaint: true,
+          },
+          jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait',
+            compress: false,
+          },
+        })
+        .from(billElement)
+        .save()
+        .catch(() => {
+          // If save() fails, try outputPdf instead
           html2pdf()
             .set({
-              margin: 0,
+              margin: [0, 0, 0, 0],
               filename: `invoice-${billNumber}.pdf`,
-              image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: { 
-                scale: 2, 
-                useCORS: true, 
+              image: { type: 'jpeg', quality: 0.95 },
+              html2canvas: {
+                scale: 3,
+                useCORS: true,
                 backgroundColor: '#ffffff',
                 logging: false,
-                removeContainer: true,
+                allowTaint: true,
               },
-              jsPDF: { 
-                unit: 'mm', 
-                format: 'a4', 
+              jsPDF: {
+                unit: 'mm',
+                format: 'a4',
                 orientation: 'portrait',
+                compress: false,
               },
             })
             .from(billElement)
-            .toPdf()
-            .get('pdf')
-            .then((pdf) => {
-              document.body.removeChild(tempFrame);
-              resolve(pdf.output('blob'));
-            })
-            .catch((error) => {
-              document.body.removeChild(tempFrame);
-              reject(error);
-            });
-        } catch (error) {
-          document.body.removeChild(tempFrame);
-          reject(error);
-        }
-      }, 500); // Wait 500ms for full render
+            .outputPdf('blob')
+            .then((blob) => resolve(blob))
+            .catch((err) => reject(err));
+        });
     });
   };
 
@@ -104,18 +105,40 @@ export default function ViewBill() {
   const handleDownloadPDF = async () => {
     try {
       toast.loading('Generating PDF...', { id: 'pdf' });
-      const res = await billAPI.getPDF(billNumber);
-      const blob = new Blob([res.data], { type: 'application/pdf' });
-      downloadBlob(blob);
-      toast.success('PDF downloaded!', { id: 'pdf' });
-    } catch {
+      
+      // Try backend first
+      try {
+        const res = await billAPI.getPDF(billNumber);
+        const blob = new Blob([res.data], { type: 'application/pdf' });
+        downloadBlob(blob);
+        toast.success('PDF downloaded!', { id: 'pdf' });
+        return;
+      } catch (backendErr) {
+        console.warn('Backend PDF failed, trying fallback...', backendErr);
+      }
+
+      // Try frontend fallback
       try {
         const fallbackBlob = await createPdfBlobFromInvoiceHtml();
         downloadBlob(fallbackBlob);
-        toast.success('PDF downloaded (frontend fallback).', { id: 'pdf' });
-      } catch {
+        toast.success('PDF downloaded (frontend fallback)', { id: 'pdf' });
+        return;
+      } catch (fallbackErr) {
+        console.warn('Frontend PDF failed, using print dialog...', fallbackErr);
+      }
+
+      // Last resort: open print dialog
+      const iframe = document.getElementById('invoice-frame');
+      if (iframe) {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        toast.success('Use "Save as PDF" in the print dialog.', { id: 'pdf' });
+      } else {
         toast.error('Failed to generate PDF', { id: 'pdf' });
       }
+    } catch (err) {
+      console.error('handleDownloadPDF error:', err);
+      toast.error('Failed to download PDF', { id: 'pdf' });
     }
   };
 
@@ -130,11 +153,20 @@ export default function ViewBill() {
   const handleShare = async () => {
     try {
       let blob;
+      
+      // Try backend PDF first
       try {
         const res = await billAPI.getPDF(billNumber);
         blob = new Blob([res.data], { type: 'application/pdf' });
       } catch {
-        blob = await createPdfBlobFromInvoiceHtml();
+        // Try frontend fallback
+        try {
+          blob = await createPdfBlobFromInvoiceHtml();
+        } catch {
+          // If both fail, just download instead
+          handleDownloadPDF();
+          return;
+        }
       }
 
       const file = new File([blob], `invoice-${billNumber}.pdf`, { type: 'application/pdf' });
