@@ -25,90 +25,71 @@ export default function ViewBill() {
   }, [billNumber]);
 
   const createPdfBlobFromInvoiceHtml = async () => {
-    if (!iframeRef.current) {
+    if (!invoiceHtml) {
       throw new Error('Invoice preview not ready');
     }
 
-    // Get the iframe's document
-    const iframe = iframeRef.current;
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-    if (!iframeDoc) {
-      throw new Error('Cannot access iframe document');
-    }
+    return new Promise((resolve, reject) => {
+      // Create a temporary iframe
+      const tempFrame = document.createElement('iframe');
+      tempFrame.style.position = 'fixed';
+      tempFrame.style.left = '-9999px';
+      tempFrame.style.top = '-9999px';
+      tempFrame.style.width = '210mm';
+      tempFrame.style.height = '297mm';
+      tempFrame.style.border = 'none';
+      document.body.appendChild(tempFrame);
 
-    // Get the .bill element from the iframe
-    const billElement = iframeDoc.querySelector('.bill');
-    if (!billElement) {
-      throw new Error('Invoice markup missing .bill root');
-    }
+      // Write invoice HTML to the iframe
+      const frameDoc = tempFrame.contentDocument || tempFrame.contentWindow.document;
+      frameDoc.open();
+      frameDoc.write(invoiceHtml);
+      frameDoc.close();
 
-    // Clone the bill element to work with
-    const clonedBill = billElement.cloneNode(true);
-    
-    // Create a temporary container with all necessary styles
-    const tempContainer = document.createElement('div');
-    tempContainer.style.position = 'fixed';
-    tempContainer.style.left = '-9999px';
-    tempContainer.style.top = '-9999px';
-    tempContainer.style.width = '210mm';
-    tempContainer.style.backgroundColor = '#ffffff';
-    
-    // Get all styles from iframe
-    const styleElements = iframeDoc.querySelectorAll('style');
-    const styleText = Array.from(styleElements)
-      .map(s => s.textContent || '')
-      .join('\n');
-    
-    // Build complete HTML with styles
-    tempContainer.innerHTML = `
-      <style>
-        ${styleText}
-      </style>
-      ${clonedBill.outerHTML}
-    `;
-    
-    document.body.appendChild(tempContainer);
+      // Wait for iframe to fully render
+      setTimeout(() => {
+        try {
+          const billElement = frameDoc.querySelector('.bill');
+          if (!billElement) {
+            throw new Error('Invoice markup missing .bill root');
+          }
 
-    try {
-      // Wait for browser to render
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      // Use html2pdf directly on the container with HTML rendering
-      return new Promise((resolve, reject) => {
-        html2pdf()
-          .set({
-            margin: 0,
-            filename: `invoice-${billNumber}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-              scale: 1, 
-              useCORS: true, 
-              backgroundColor: '#ffffff',
-              logging: false,
-              allowTaint: true,
-              removeContainer: true
-            },
-            jsPDF: { 
-              unit: 'mm', 
-              format: 'a4', 
-              orientation: 'portrait',
-              compress: true
-            },
-            pagebreak: { mode: 'avoid' },
-          })
-          .from(tempContainer)
-          .toPdf()
-          .get('pdf')
-          .then((pdf) => {
-            resolve(pdf.output('blob'));
-          })
-          .catch((err) => {
-            reject(err);
-          });
-      });
-    } finally {
-      document.body.removeChild(tempContainer);
-    }
+          // Generate PDF from the iframe's rendered content
+          html2pdf()
+            .set({
+              margin: 0,
+              filename: `invoice-${billNumber}.pdf`,
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { 
+                scale: 2, 
+                useCORS: true, 
+                backgroundColor: '#ffffff',
+                logging: false,
+                removeContainer: true,
+              },
+              jsPDF: { 
+                unit: 'mm', 
+                format: 'a4', 
+                orientation: 'portrait',
+              },
+            })
+            .from(billElement)
+            .toPdf()
+            .get('pdf')
+            .then((pdf) => {
+              document.body.removeChild(tempFrame);
+              resolve(pdf.output('blob'));
+            })
+            .catch((error) => {
+              document.body.removeChild(tempFrame);
+              reject(error);
+            });
+        } catch (error) {
+          document.body.removeChild(tempFrame);
+          reject(error);
+        }
+      }, 500); // Wait 500ms for full render
+    });
   };
 
   const downloadBlob = (blob) => {
