@@ -139,7 +139,7 @@ function generateInvoiceHTML(bill) {
 
       td {
         border: 1.2px solid black;
-        padding: 4px 6px;
+        padding: 5px 6px;
         vertical-align: middle;
         font-size: 12px;
         line-height: 1.2;
@@ -196,7 +196,8 @@ function generateInvoiceHTML(bill) {
       <tr>
         <td style="width:65%; vertical-align:top; padding:6px;">
           <div><b>To. M/s</b> ${s(bill.customerName)}</div>
-          <div style="margin-top:4px;">GSTIN :</div>
+          <div style="margin-top:6px;">GSTIN :</div>
+          <div style="margin-top:10px;">Travel Details <b>${s(bill.travelDetails)}</b></div>
         </td>
         <td style="width:35%; padding:0;">
           <table style="width:100%; border-collapse:collapse;">
@@ -227,12 +228,6 @@ function generateInvoiceHTML(bill) {
             </tr>
           </table>
         </td>
-      </tr>
-    </table>
-
-    <table class="section">
-      <tr class="row-medium">
-        <td colspan="2" style="padding:6px; font-weight:normal;">Travel Details <b>${s(bill.travelDetails)}</b></td>
       </tr>
     </table>
 
