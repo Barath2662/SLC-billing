@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FiEdit, FiDownload, FiPrinter, FiShare2, FiArrowLeft, FiTrash2 } from 'react-icons/fi';
 import html2pdf from 'html2pdf.js';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import { billAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -23,55 +25,49 @@ export default function ViewBill() {
   }, [billNumber]);
 
   const createPdfBlobFromInvoiceHtml = async () => {
-    if (!invoiceHtml) {
+    if (!iframeRef.current) {
       throw new Error('Invoice preview not ready');
     }
 
-    const parsed = new DOMParser().parseFromString(invoiceHtml, 'text/html');
-    const bill = parsed.querySelector('.bill');
-    if (!bill) {
+    // Get the iframe's document
+    const iframe = iframeRef.current;
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    if (!iframeDoc) {
+      throw new Error('Cannot access iframe document');
+    }
+
+    // Get the .bill element from the iframe
+    const billElement = iframeDoc.querySelector('.bill');
+    if (!billElement) {
       throw new Error('Invoice markup missing .bill root');
     }
 
-    const styleText = Array.from(parsed.querySelectorAll('style'))
-      .map((s) => s.textContent || '')
-      .join('\n');
-
-    const container = document.createElement('div');
-    container.style.position = 'fixed';
-    container.style.left = '0';
-    container.style.top = '0';
-    container.style.width = '210mm';
-    container.style.minHeight = '297mm';
-    container.style.background = '#fff';
-    container.style.opacity = '0';
-    container.style.pointerEvents = 'none';
-    container.style.zIndex = '-1';
-    container.innerHTML = `<style>${styleText}</style>${bill.outerHTML}`;
-    document.body.appendChild(container);
-
     try {
-      // Let browser layout cloned DOM before html2canvas snapshot
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Use html2canvas to capture the iframe's bill element
+      const canvas = await html2canvas(billElement, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
 
-      const worker = html2pdf()
-        .set({
-          margin: [10, 10, 10, 10],
-          filename: `invoice-${billNumber}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'] },
-        })
-        .from(container)
-        .toPdf();
+      // Create PDF from canvas
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdfWidth = 210; // A4 width in mm
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-      const pdf = await worker.get('pdf');
-      const pdfBlob = pdf.output('blob');
+      const pdf = new jsPDF({
+        orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
 
-      return pdfBlob;
-    } finally {
-      document.body.removeChild(container);
+      pdf.addImage(imgData, 'JPEG', 5, 5, pdfWidth - 10, pdfHeight - 10);
+
+      return pdf.output('blob');
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      throw new Error('Failed to generate PDF: ' + err.message);
     }
   };
 
