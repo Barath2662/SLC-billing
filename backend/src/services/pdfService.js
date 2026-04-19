@@ -571,7 +571,7 @@ async function generatePDF(bill) {
   const html = generateInvoiceHTML(bill);
 
   const launchOptions = {
-    headless: 'new',
+    headless: true,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
