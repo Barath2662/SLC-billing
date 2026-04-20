@@ -7,6 +7,45 @@ const { calculateTotalKms, calculateTotalHours, calculateChargeableKms, calculat
 
 const prisma = new PrismaClient();
 
+const normalizeBillResponse = (bill) => {
+  if (!bill) return bill;
+
+  const numericDefaults = {
+    totalHours: 0,
+    startingKms: 0,
+    closingKms: 0,
+    totalKms: 0,
+    chargePerKm: 0,
+    chargePerHour: 0,
+    freeKms: 0,
+    chargeableKms: 0,
+    chargePerDay: 0,
+    tollCharges: 0,
+    nightHaltCharges: 0,
+    driverBata: 0,
+    permitCharges: 0,
+    otherExpenses: 0,
+    totalAmount: 0,
+    advance: 0,
+    payableAmount: 0,
+  };
+
+  const textDefaults = {
+    travelDetails: '',
+    gstin: '',
+    vehicleNumber: '',
+    startingTime: '',
+    closingTime: '',
+    rupeesInWords: '',
+  };
+
+  return {
+    ...textDefaults,
+    ...numericDefaults,
+    ...bill,
+  };
+};
+
 // Create a new bill
 const createBill = async (req, res) => {
   try {
@@ -103,7 +142,7 @@ const getAllBills = async (req, res) => {
     ]);
 
     res.json({
-      bills,
+      bills: bills.map(normalizeBillResponse),
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });
   } catch (err) {
@@ -124,7 +163,7 @@ const getBillByNumber = async (req, res) => {
       return res.status(404).json({ error: 'Bill not found.' });
     }
 
-    res.json({ bill });
+    res.json({ bill: normalizeBillResponse(bill) });
   } catch (err) {
     console.error('Get bill error:', err);
     res.status(500).json({ error: 'Internal server error.' });
@@ -266,7 +305,7 @@ const searchBills = async (req, res) => {
       take: 50,
     });
 
-    res.json({ bills, count: bills.length });
+    res.json({ bills: bills.map(normalizeBillResponse), count: bills.length });
   } catch (err) {
     console.error('Search bills error:', err);
     res.status(500).json({ error: 'Internal server error.' });
@@ -318,7 +357,7 @@ const filterBills = async (req, res) => {
       take: 200,
     });
 
-    res.json({ bills, count: bills.length });
+    res.json({ bills: bills.map(normalizeBillResponse), count: bills.length });
   } catch (err) {
     console.error('Filter bills error:', err);
     res.status(500).json({ error: 'Internal server error.' });
@@ -335,6 +374,7 @@ const generateBillPDF = async (req, res) => {
       return res.status(404).json({ error: 'Bill not found' });
     }
 
+    console.log('BILL DATA:', bill);
     const html = generateInvoiceHTML(bill);
     const pdfBuffer = await generatePDFFromHTML(html);
 
@@ -364,6 +404,7 @@ const getInvoiceHTML = async (req, res) => {
     const { billNumber } = req.params;
     const bill = await prisma.bill.findUnique({ where: { billNumber } });
     if (!bill) return res.status(404).json({ error: 'Bill not found.' });
+    console.log('BILL DATA:', bill);
     const html = generateInvoiceHTML(bill);
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.send(html);

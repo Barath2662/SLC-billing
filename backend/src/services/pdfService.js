@@ -60,40 +60,85 @@ function formatDate(date) {
 }
 
 function generateInvoiceHTML(bill) {
-  const n = (v) => v != null ? Number(v) : 0;
+  const normalizedBill = {
+    customerName: '',
+    travelDetails: '',
+    gstin: '',
+    billNumber: '',
+    date: '',
+    vehicleNumber: '',
+    tripDate: '',
+    startingTime: '',
+    closingTime: '',
+    startingKms: 0,
+    closingKms: 0,
+    totalKms: 0,
+    totalHours: 0,
+    chargePerKm: 0,
+    chargePerHour: 0,
+    chargeableKms: 0,
+    chargePerDay: 0,
+    tollCharges: 0,
+    nightHaltCharges: 0,
+    driverBata: 0,
+    permitCharges: 0,
+    otherExpenses: 0,
+    kmAmount: 0,
+    dayAmount: 0,
+    totalAmount: 0,
+    advance: 0,
+    payableAmount: 0,
+    rupeesInWords: '',
+    freeKms: 0,
+    multipleDays: false,
+    tripEndDate: null,
+    ...bill,
+  };
+
+  const n = (v) => {
+    if (v === null || v === undefined || v === '') return 0;
+    const num = Number(v);
+    return Number.isFinite(num) ? num : 0;
+  };
   const s = (val) => escapeHtml(val || '');
+  const showText = (val) => (val === 0 || val === '0' || val == null || val === '' ? '' : s(val));
+  const showNum = (val) => (n(val) === 0 ? '' : fmt2(val));
   const fmt2 = (val) => (val != null && val !== '' ? Number(val).toFixed(2) : '');
-  const tripDate = bill.tripDate ? formatDate(bill.tripDate) : '';
-  const date = bill.date ? formatDate(bill.date) : '';
-  const totalKms = bill.totalKms != null ? Number(bill.totalKms) : 0;
-  const totalHours = bill.totalHours != null ? Number(bill.totalHours) : 0;
-  const chargeableKms = bill.chargeableKms != null ? Number(bill.chargeableKms) : Math.max(0, totalKms - n(bill.freeKms));
+  const tripDate = normalizedBill.tripDate ? formatDate(normalizedBill.tripDate) : '';
+  const date = normalizedBill.date ? formatDate(normalizedBill.date) : '';
+  const totalKms = n(normalizedBill.totalKms);
+  const totalHours = n(normalizedBill.totalHours);
+  const chargeableKms = normalizedBill.chargeableKms != null ? n(normalizedBill.chargeableKms) : Math.max(0, totalKms - n(normalizedBill.freeKms));
   const dayCount = (() => {
-    if (!bill.multipleDays || !bill.tripDate || !bill.tripEndDate) return 1;
-    const diff = Math.round((new Date(bill.tripEndDate) - new Date(bill.tripDate)) / (1000 * 60 * 60 * 24));
+    if (!normalizedBill.multipleDays || !normalizedBill.tripDate || !normalizedBill.tripEndDate) return 1;
+    const diff = Math.round((new Date(normalizedBill.tripEndDate) - new Date(normalizedBill.tripDate)) / (1000 * 60 * 60 * 24));
     return Math.max(1, diff + 1);
   })();
 
-  const kmAmount = bill.kmAmount != null
-    ? Number(bill.kmAmount)
-    : Math.round(chargeableKms * n(bill.chargePerKm) * 100) / 100;
-  const dayAmount = bill.dayAmount != null
-    ? Number(bill.dayAmount)
-    : Math.round(n(bill.chargePerDay) * dayCount * 100) / 100;
-  const totalAmount = bill.totalAmount != null ? Number(bill.totalAmount) : 0;
-  const advanceAmount = bill.advance != null ? Number(bill.advance) : 0;
-  const payableAmount = bill.payableAmount != null ? Number(bill.payableAmount) : Math.max(0, totalAmount - advanceAmount);
-  const rupeesInWords = s(bill.rupeesInWords || numberToWords(totalAmount));
+  const kmAmount = normalizedBill.kmAmount != null
+    ? n(normalizedBill.kmAmount)
+    : Math.round(chargeableKms * n(normalizedBill.chargePerKm) * 100) / 100;
+  const dayAmount = normalizedBill.dayAmount != null
+    ? n(normalizedBill.dayAmount)
+    : Math.round(n(normalizedBill.chargePerDay) * dayCount * 100) / 100;
+  const totalAmount = normalizedBill.totalAmount != null ? n(normalizedBill.totalAmount) : 0;
+  const advanceAmount = normalizedBill.advance != null ? n(normalizedBill.advance) : 0;
+  const payableAmount = normalizedBill.payableAmount != null ? n(normalizedBill.payableAmount) : Math.max(0, totalAmount - advanceAmount);
+  const rupeesInWords = s(normalizedBill.rupeesInWords || numberToWords(totalAmount));
   const amountRs = (amount) => (amount != null && amount !== '' ? fmt2(amount) : '');
   const amountPs = (amount) => (amount != null && amount !== '' ? '00' : '');
 
   const formatTotalHours = (hoursDecimal) => {
     const hours = Number(hoursDecimal || 0);
-    if (!hours) return '0 hrs 0 mins';
+    if (!hours) return '';
     const h = Math.floor(hours);
     const m = Math.round((hours - h) * 60);
     return `${h} hrs ${m} mins`;
   };
+
+  const nightHaltAmount = n(normalizedBill.nightHaltCharges);
+  const driverBataAmount = n(normalizedBill.driverBata);
+  const otherPermitAmount = n(normalizedBill.otherExpenses) + n(normalizedBill.permitCharges);
 
   return `
   <html>
@@ -215,9 +260,9 @@ function generateInvoiceHTML(bill) {
     <table>
       <tr>
         <td style="width:65%; vertical-align:top; padding:6px;">
-          <div><b>To. M/s</b> ${s(bill.customerName)}</div>
-          <div style="margin-top:6px;">GSTIN :</div>
-          <div style="margin-top:10px;">Travel Details : <b>${s(bill.travelDetails)}</b></div>
+          <div><b>To. M/s</b> ${showText(normalizedBill.customerName)}</div>
+          <div style="margin-top:6px;">GSTIN : ${showText(normalizedBill.gstin)}</div>
+          <div style="margin-top:10px;">Travel Details : <b>${showText(normalizedBill.travelDetails)}</b></div>
         </td>
         <td style="width:35%; padding:0;">
           <table style="width:100%; border-collapse:collapse;">
@@ -228,7 +273,7 @@ function generateInvoiceHTML(bill) {
             </tr>
             <tr>
               <td style="padding:4px;">
-                <b>No :</b> <span style="font-size:18px;">${s(bill.billNumber)}</span>
+                <b>No :</b> <span style="font-size:18px;">${showText(normalizedBill.billNumber)}</span>
               </td>
             </tr>
             <tr>
@@ -238,7 +283,7 @@ function generateInvoiceHTML(bill) {
             </tr>
             <tr>
               <td style="padding:4px;">
-                <b>Vehicle No.</b> ${s(bill.vehicleNumber)}
+                <b>Vehicle No.</b> ${showText(normalizedBill.vehicleNumber)}
               </td>
             </tr>
             <tr>
@@ -253,28 +298,28 @@ function generateInvoiceHTML(bill) {
 
     <table>
       <tr class="row-medium">
-        <td style="width:50%">Closing Time : ${s(bill.closingTime)}</td>
-        <td style="width:25%">Closing Kms : ${s(bill.closingKms)}</td>
+        <td style="width:50%">Closing Time : ${showText(normalizedBill.closingTime)}</td>
+        <td style="width:25%">Closing Kms : ${showNum(normalizedBill.closingKms)}</td>
         <td style="width:15%" colspan="2" class="center bold">AMOUNT</td>
       </tr>
 
       <tr class="row-medium">
-        <td>Starting Time : ${s(bill.startingTime)}</td>
-        <td>Starting Kms : ${s(bill.startingKms)}</td>
+        <td>Starting Time : ${showText(normalizedBill.startingTime)}</td>
+        <td>Starting Kms : ${showNum(normalizedBill.startingKms)}</td>
         <td class="center bold">Rs.</td>
         <td class="center bold">Ps.</td>
       </tr>
 
       <tr class="row-medium">
         <td>Total Hours : ${formatTotalHours(totalHours)}</td>
-        <td>Total Kms : ${s(totalKms)}</td>
+        <td>Total Kms : ${showNum(totalKms)}</td>
         <td></td>
         <td></td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">
-          Charge per Km : Rs. ${fmt2(bill.chargePerKm)} × ${fmt2(chargeableKms)}
+          Charge per Km : Rs. ${fmt2(normalizedBill.chargePerKm)} × ${fmt2(chargeableKms)}
         </td>
         <td class="right">${amountRs(kmAmount)}</td>
         <td class="right">${amountPs(kmAmount)}</td>
@@ -290,34 +335,34 @@ function generateInvoiceHTML(bill) {
 
       <tr class="row-medium">
         <td colspan="2">
-          Charge per Day : Rs. ${fmt2(bill.chargePerDay)}
+          Charge per Day : Rs. ${fmt2(normalizedBill.chargePerDay)}
         </td>
         <td class="right">${amountRs(dayAmount)}</td>
         <td class="right">${amountPs(dayAmount)}</td>
       </tr>
 
       <tr class="row-medium">
-        <td colspan="2">Toll Charges : Rs. ${fmt2(bill.tollCharges) || ''}</td>
-        <td class="right">${amountRs(bill.tollCharges)}</td>
-        <td class="right">${amountPs(bill.tollCharges)}</td>
+        <td colspan="2">Toll Charges : Rs. ${fmt2(normalizedBill.tollCharges) || ''}</td>
+        <td class="right">${amountRs(normalizedBill.tollCharges)}</td>
+        <td class="right">${amountPs(normalizedBill.tollCharges)}</td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">Night Halt Charges :</td>
-        <td></td>
-        <td></td>
+        <td class="right">${amountRs(nightHaltAmount || '')}</td>
+        <td class="right">${amountPs(nightHaltAmount || '')}</td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">Driver Bata :</td>
-        <td></td>
-        <td></td>
+        <td class="right">${amountRs(driverBataAmount || '')}</td>
+        <td class="right">${amountPs(driverBataAmount || '')}</td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">Other Expenses / Permit Charges :</td>
-        <td></td>
-        <td></td>
+        <td class="right">${amountRs(otherPermitAmount || '')}</td>
+        <td class="right">${amountPs(otherPermitAmount || '')}</td>
       </tr>
 
       <tr class="row-medium">
