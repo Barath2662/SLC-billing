@@ -83,8 +83,8 @@ function generateInvoiceHTML(bill) {
     driverBata: 0,
     permitCharges: 0,
     otherExpenses: 0,
-    kmAmount: 0,
-    dayAmount: 0,
+    kmAmount: null,
+    dayAmount: null,
     totalAmount: 0,
     advance: 0,
     payableAmount: 0,
@@ -115,9 +115,7 @@ function generateInvoiceHTML(bill) {
     return Math.max(1, diff + 1);
   })();
 
-  const kmAmount = normalizedBill.kmAmount != null
-    ? n(normalizedBill.kmAmount)
-    : Math.round(chargeableKms * n(normalizedBill.chargePerKm) * 100) / 100;
+  const kmAmount = Math.round(n(normalizedBill.chargePerKm) * totalKms * 100) / 100;
   const dayAmount = normalizedBill.dayAmount != null
     ? n(normalizedBill.dayAmount)
     : Math.round(n(normalizedBill.chargePerDay) * dayCount * 100) / 100;
@@ -139,6 +137,11 @@ function generateInvoiceHTML(bill) {
   const nightHaltAmount = n(normalizedBill.nightHaltCharges);
   const driverBataAmount = n(normalizedBill.driverBata);
   const otherPermitAmount = n(normalizedBill.otherExpenses) + n(normalizedBill.permitCharges);
+  const showChargePerDayRow = n(normalizedBill.chargePerDay) !== 0;
+  const showTollRow = n(normalizedBill.tollCharges) !== 0;
+  const showNightHaltRow = nightHaltAmount !== 0;
+  const showDriverBataRow = driverBataAmount !== 0;
+  const showOtherPermitRow = otherPermitAmount !== 0;
 
   return `
   <html>
@@ -333,37 +336,37 @@ function generateInvoiceHTML(bill) {
         <td></td>
       </tr>
 
-      <tr class="row-medium">
+      ${showChargePerDayRow ? `<tr class="row-medium">
         <td colspan="2">
           Charge per Day : Rs. ${fmt2(normalizedBill.chargePerDay)}
         </td>
         <td class="right">${amountRs(dayAmount)}</td>
         <td class="right">${amountPs(dayAmount)}</td>
-      </tr>
+      </tr>` : ''}
 
-      <tr class="row-medium">
+      ${showTollRow ? `<tr class="row-medium">
         <td colspan="2">Toll Charges : Rs. ${fmt2(normalizedBill.tollCharges) || ''}</td>
         <td class="right">${amountRs(normalizedBill.tollCharges)}</td>
         <td class="right">${amountPs(normalizedBill.tollCharges)}</td>
-      </tr>
+      </tr>` : ''}
 
-      <tr class="row-medium">
+      ${showNightHaltRow ? `<tr class="row-medium">
         <td colspan="2">Night Halt Charges :</td>
         <td class="right">${amountRs(nightHaltAmount || '')}</td>
         <td class="right">${amountPs(nightHaltAmount || '')}</td>
-      </tr>
+      </tr>` : ''}
 
-      <tr class="row-medium">
+      ${showDriverBataRow ? `<tr class="row-medium">
         <td colspan="2">Driver Bata :</td>
         <td class="right">${amountRs(driverBataAmount || '')}</td>
         <td class="right">${amountPs(driverBataAmount || '')}</td>
-      </tr>
+      </tr>` : ''}
 
-      <tr class="row-medium">
+      ${showOtherPermitRow ? `<tr class="row-medium">
         <td colspan="2">Other Expenses / Permit Charges :</td>
         <td class="right">${amountRs(otherPermitAmount || '')}</td>
         <td class="right">${amountPs(otherPermitAmount || '')}</td>
-      </tr>
+      </tr>` : ''}
 
       <tr class="row-medium">
         <td colspan="2" class="center bold">TOTAL</td>
