@@ -39,6 +39,9 @@ export default function BillForm({ onSubmit, defaultValues, isEdit = false, load
   } = useForm({
     defaultValues: defaultValues || {
       customerName: '',
+      addressLine1: '',
+      addressLine2: '',
+      addressLine3: '',
       travelDetails: '',
       gstin: '',
       date: new Date().toISOString().split('T')[0],
@@ -60,6 +63,7 @@ export default function BillForm({ onSubmit, defaultValues, isEdit = false, load
       tollCharges: '',
       nightHaltCharges: '',
       driverBata: '',
+      driverBataCount: 1,
       permitCharges: '',
       otherExpenses: '',
       totalAmount: 0,
@@ -87,6 +91,9 @@ export default function BillForm({ onSubmit, defaultValues, isEdit = false, load
     setCustomerSearch(customer.name);
     setValue('customerName', customer.name);
     setValue('gstin', customer.gstin || '');
+    setValue('addressLine1', customer.addressLine1 || '');
+    setValue('addressLine2', customer.addressLine2 || '');
+    setValue('addressLine3', customer.addressLine3 || '');
     setShowDropdown(false);
   };
 
@@ -124,7 +131,7 @@ export default function BillForm({ onSubmit, defaultValues, isEdit = false, load
     watchedFields.multipleDays, watchedFields.tripDate, watchedFields.tripEndDate,
     watchedFields.chargePerKm, watchedFields.chargePerHour, watchedFields.freeKms,
     watchedFields.chargePerDay,
-    watchedFields.tollCharges, watchedFields.nightHaltCharges, watchedFields.driverBata,
+    watchedFields.tollCharges, watchedFields.nightHaltCharges, watchedFields.driverBata, watchedFields.driverBataCount,
     watchedFields.permitCharges, watchedFields.otherExpenses,
     watchedFields.advance,
     setValue,
@@ -180,6 +187,14 @@ export default function BillForm({ onSubmit, defaultValues, isEdit = false, load
             )}
           </div>
           <InputField label="GSTIN" name="gstin" placeholder="Enter GSTIN (optional)" register={register} errors={errors} />
+
+          {/* Customer Address Fields */}
+          <div className="md:col-span-2 space-y-3">
+            <InputField label="Address Line 1" name="addressLine1" placeholder="e.g. No. 25, Cross Cut Road (optional)" register={register} errors={errors} />
+            <InputField label="Address Line 2" name="addressLine2" placeholder="e.g. Gandhipuram (optional)" register={register} errors={errors} />
+            <InputField label="Address Line 3" name="addressLine3" placeholder="e.g. Coimbatore - 641012 (optional)" register={register} errors={errors} />
+          </div>
+
           <div className="md:col-span-2">
             <InputField label="Travel Details" name="travelDetails" placeholder="Enter travel details" register={register} errors={errors} />
           </div>
@@ -262,7 +277,8 @@ export default function BillForm({ onSubmit, defaultValues, isEdit = false, load
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <InputField label="Toll Charges (Rs.)" name="tollCharges" type="number" placeholder="0.00" register={register} errors={errors} />
           <InputField label="Night Halt Charges (Rs.)" name="nightHaltCharges" type="number" placeholder="0.00" register={register} errors={errors} />
-          <InputField label="Driver Bata per Day (₹)" name="driverBata" type="number" placeholder="0.00" register={register} errors={errors} />
+          <InputField label="Driver Bata Amount (₹)" name="driverBata" type="number" placeholder="0.00" register={register} errors={errors} />
+          <InputField label="Driver Bata Count" name="driverBataCount" type="number" placeholder="1" register={register} errors={errors} />
           <InputField label="Permit Charges (₹)" name="permitCharges" type="number" placeholder="0.00" register={register} errors={errors} />
           <InputField label="Other Expenses (₹)" name="otherExpenses" type="number" placeholder="0.00" register={register} errors={errors} />
         </div>

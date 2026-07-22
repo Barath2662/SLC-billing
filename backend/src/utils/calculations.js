@@ -39,13 +39,14 @@ function calculateTotalAmount(data) {
 
   const dayCount = data.multipleDays ? calculateDayCount(data.tripDate, data.tripEndDate) : 1;
   const chargeableKms = calculateChargeableKms(data.totalKms, data.freeKms);
+  const bataCount = data.driverBataCount != null && data.driverBataCount !== '' ? n(data.driverBataCount) : 1;
 
   total += chargeableKms * n(data.chargePerKm);
   total += n(data.totalHours) * n(data.chargePerHour);
   total += n(data.chargePerDay) * dayCount;
   total += n(data.tollCharges);
   total += n(data.nightHaltCharges);
-  total += n(data.driverBata);
+  total += n(data.driverBata) * (bataCount || 1);
   total += n(data.permitCharges);
   total += n(data.otherExpenses);
 

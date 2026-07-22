@@ -23,6 +23,7 @@ const normalizeBillResponse = (bill) => {
     tollCharges: 0,
     nightHaltCharges: 0,
     driverBata: 0,
+    driverBataCount: 1,
     permitCharges: 0,
     otherExpenses: 0,
     totalAmount: 0,
@@ -31,6 +32,9 @@ const normalizeBillResponse = (bill) => {
   };
 
   const textDefaults = {
+    addressLine1: '',
+    addressLine2: '',
+    addressLine3: '',
     travelDetails: '',
     gstin: '',
     vehicleNumber: '',
@@ -69,6 +73,7 @@ const createBill = async (req, res) => {
       totalKms,
       totalHours,
       chargeableKms,
+      driverBataCount: data.driverBataCount != null ? Number(data.driverBataCount) : 1,
     };
     const totalAmount = data.totalAmount != null ? Number(data.totalAmount) : calculateTotalAmount(billData);
     const advance = data.advance != null && data.advance !== '' ? Number(data.advance) : 0;
@@ -79,6 +84,9 @@ const createBill = async (req, res) => {
       data: {
         billNumber,
         customerName: data.customerName,
+        addressLine1: data.addressLine1 || null,
+        addressLine2: data.addressLine2 || null,
+        addressLine3: data.addressLine3 || null,
         travelDetails: data.travelDetails || null,
         gstin: data.gstin || null,
         date: data.date ? new Date(data.date) : new Date(),
@@ -100,6 +108,7 @@ const createBill = async (req, res) => {
         tollCharges: data.tollCharges != null ? Number(data.tollCharges) : null,
         nightHaltCharges: data.nightHaltCharges != null ? Number(data.nightHaltCharges) : null,
         driverBata: data.driverBata != null ? Number(data.driverBata) : null,
+        driverBataCount: data.driverBataCount != null ? Number(data.driverBataCount) : 1,
         permitCharges: data.permitCharges != null ? Number(data.permitCharges) : null,
         otherExpenses: data.otherExpenses != null ? Number(data.otherExpenses) : null,
         totalAmount,
@@ -115,8 +124,19 @@ const createBill = async (req, res) => {
     if (data.customerName) {
       prisma.customer.upsert({
         where: { name: data.customerName },
-        update: { gstin: data.gstin || null },
-        create: { name: data.customerName, gstin: data.gstin || null },
+        update: {
+          gstin: data.gstin || null,
+          addressLine1: data.addressLine1 || null,
+          addressLine2: data.addressLine2 || null,
+          addressLine3: data.addressLine3 || null,
+        },
+        create: {
+          name: data.customerName,
+          gstin: data.gstin || null,
+          addressLine1: data.addressLine1 || null,
+          addressLine2: data.addressLine2 || null,
+          addressLine3: data.addressLine3 || null,
+        },
       }).catch(() => {});
     }
   } catch (err) {
@@ -218,6 +238,7 @@ const updateBill = async (req, res) => {
       totalHours,
       nightHaltCharges: data.nightHaltCharges ?? existing.nightHaltCharges,
       driverBata: data.driverBata ?? existing.driverBata,
+      driverBataCount: data.driverBataCount ?? existing.driverBataCount,
       permitCharges: data.permitCharges ?? existing.permitCharges,
       otherExpenses: data.otherExpenses ?? existing.otherExpenses,
     };
@@ -230,6 +251,9 @@ const updateBill = async (req, res) => {
       where: { billNumber },
       data: {
         customerName: data.customerName ?? existing.customerName,
+        addressLine1: data.addressLine1 !== undefined ? (data.addressLine1 || null) : existing.addressLine1,
+        addressLine2: data.addressLine2 !== undefined ? (data.addressLine2 || null) : existing.addressLine2,
+        addressLine3: data.addressLine3 !== undefined ? (data.addressLine3 || null) : existing.addressLine3,
         travelDetails: data.travelDetails ?? existing.travelDetails,
         gstin: data.gstin ?? existing.gstin,
         date: data.date ? new Date(data.date) : existing.date,
@@ -251,6 +275,7 @@ const updateBill = async (req, res) => {
         tollCharges: data.tollCharges != null ? Number(data.tollCharges) : existing.tollCharges,
         nightHaltCharges: data.nightHaltCharges != null ? Number(data.nightHaltCharges) : existing.nightHaltCharges,
         driverBata: data.driverBata != null ? Number(data.driverBata) : existing.driverBata,
+        driverBataCount: data.driverBataCount != null ? Number(data.driverBataCount) : existing.driverBataCount,
         permitCharges: data.permitCharges != null ? Number(data.permitCharges) : existing.permitCharges,
         otherExpenses: data.otherExpenses != null ? Number(data.otherExpenses) : existing.otherExpenses,
         totalAmount,
@@ -457,7 +482,7 @@ const getCustomers = async (req, res) => {
   try {
     const customers = await prisma.customer.findMany({
       orderBy: { name: 'asc' },
-      select: { id: true, name: true, gstin: true },
+      select: { id: true, name: true, gstin: true, addressLine1: true, addressLine2: true, addressLine3: true },
     });
     res.json({ customers });
   } catch (err) {

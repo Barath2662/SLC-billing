@@ -56,12 +56,19 @@ function escapeHtml(value) {
 function formatDate(date) {
   if (!date) return '';
   const d = new Date(date);
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  if (isNaN(d.getTime())) return '';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
 }
 
 function generateInvoiceHTML(bill) {
   const normalizedBill = {
     customerName: '',
+    addressLine1: '',
+    addressLine2: '',
+    addressLine3: '',
     travelDetails: '',
     gstin: '',
     billNumber: '',
@@ -81,6 +88,7 @@ function generateInvoiceHTML(bill) {
     tollCharges: 0,
     nightHaltCharges: 0,
     driverBata: 0,
+    driverBataCount: 1,
     permitCharges: 0,
     otherExpenses: 0,
     kmAmount: null,
@@ -104,8 +112,19 @@ function generateInvoiceHTML(bill) {
   const showText = (val) => (val === 0 || val === '0' || val == null || val === '' ? '' : s(val));
   const showNum = (val) => (n(val) === 0 ? '' : fmt2(val));
   const fmt2 = (val) => (val != null && val !== '' ? Number(val).toFixed(2) : '');
-  const tripDate = normalizedBill.tripDate ? formatDate(normalizedBill.tripDate) : '';
   const date = normalizedBill.date ? formatDate(normalizedBill.date) : '';
+  const formattedTripDateString = (() => {
+    if (!normalizedBill.tripDate) return '';
+    const d1 = new Date(normalizedBill.tripDate);
+    const d2 = normalizedBill.tripEndDate ? new Date(normalizedBill.tripEndDate) : null;
+    if (!d2 || isNaN(d2.getTime()) || d1.getTime() === d2.getTime() || !normalizedBill.multipleDays) {
+      return formatDate(d1);
+    }
+    const start = d1 < d2 ? d1 : d2;
+    const end = d1 < d2 ? d2 : d1;
+    return `${formatDate(start)} - ${formatDate(end)}`;
+  })();
+
   const totalKms = n(normalizedBill.totalKms);
   const totalHours = n(normalizedBill.totalHours);
   const chargeableKms = normalizedBill.chargeableKms != null ? n(normalizedBill.chargeableKms) : Math.max(0, totalKms - n(normalizedBill.freeKms));
@@ -115,14 +134,24 @@ function generateInvoiceHTML(bill) {
     return Math.max(1, diff + 1);
   })();
 
-  const kmAmount = Math.round(n(normalizedBill.chargePerKm) * totalKms * 100) / 100;
+  const kmAmount = Math.round(n(normalizedBill.chargePerKm) * chargeableKms * 100) / 100;
+  const hourAmount = Math.round(n(normalizedBill.chargePerHour) * totalHours * 100) / 100;
   const dayAmount = normalizedBill.dayAmount != null
     ? n(normalizedBill.dayAmount)
     : Math.round(n(normalizedBill.chargePerDay) * dayCount * 100) / 100;
-  const totalAmount = normalizedBill.totalAmount != null ? n(normalizedBill.totalAmount) : 0;
+  const bataAmount = n(normalizedBill.driverBata);
+  const bataCount = n(normalizedBill.driverBataCount) || 1;
+  const driverBataTotal = Math.round(bataAmount * bataCount * 100) / 100;
+  const nightHaltAmount = n(normalizedBill.nightHaltCharges);
+  const otherPermitAmount = n(normalizedBill.otherExpenses) + n(normalizedBill.permitCharges);
+
+  const totalAmount = normalizedBill.totalAmount != null && Number(normalizedBill.totalAmount) !== 0
+    ? n(normalizedBill.totalAmount)
+    : Math.round((kmAmount + hourAmount + dayAmount + n(normalizedBill.tollCharges) + nightHaltAmount + driverBataTotal + otherPermitAmount) * 100) / 100;
   const advanceAmount = normalizedBill.advance != null ? n(normalizedBill.advance) : 0;
   const payableAmount = normalizedBill.payableAmount != null ? n(normalizedBill.payableAmount) : Math.max(0, totalAmount - advanceAmount);
   const rupeesInWords = s(normalizedBill.rupeesInWords || numberToWords(totalAmount));
+
   const formatAmount = (value) => {
     if (value === null || value === undefined || Number(value) === 0) {
       return { rs: '', ps: '' };
@@ -142,10 +171,6 @@ function generateInvoiceHTML(bill) {
     const m = Math.round((hours - h) * 60);
     return `${h} hrs ${m} mins`;
   };
-
-  const nightHaltAmount = n(normalizedBill.nightHaltCharges);
-  const driverBataAmount = n(normalizedBill.driverBata);
-  const otherPermitAmount = n(normalizedBill.otherExpenses) + n(normalizedBill.permitCharges);
 
   return `
   <html>
@@ -267,9 +292,13 @@ function generateInvoiceHTML(bill) {
     <table>
       <tr>
         <td style="width:65%; vertical-align:top; padding:6px;">
-          <div><b>To. M/s</b> ${showText(normalizedBill.customerName)}</div>
+          <div><b>To M/s.</b></div>
+          <div style="font-weight:bold;">${s(normalizedBill.customerName)}</div>
+          <div>${s(normalizedBill.addressLine1) || '&nbsp;'}</div>
+          <div>${s(normalizedBill.addressLine2) || '&nbsp;'}</div>
+          <div>${s(normalizedBill.addressLine3) || '&nbsp;'}</div>
           <div style="margin-top:6px;">GSTIN : ${showText(normalizedBill.gstin)}</div>
-          <div style="margin-top:10px;">Travel Details : <b>${showText(normalizedBill.travelDetails)}</b></div>
+          <div style="margin-top:6px;">Travel Details : <b>${showText(normalizedBill.travelDetails)}</b></div>
         </td>
         <td style="width:35%; padding:0;">
           <table style="width:100%; border-collapse:collapse;">
@@ -295,7 +324,7 @@ function generateInvoiceHTML(bill) {
             </tr>
             <tr>
               <td style="padding:4px;">
-                <b>Trip Date :</b> ${s(tripDate)}
+                <b>Trip Date :</b> ${s(formattedTripDateString)}
               </td>
             </tr>
           </table>
@@ -326,7 +355,7 @@ function generateInvoiceHTML(bill) {
 
       <tr class="row-medium">
         <td colspan="2">
-          Charge per Km : Rs. ${fmt2(normalizedBill.chargePerKm)} × ${fmt2(chargeableKms)}
+          ${n(normalizedBill.chargePerKm) > 0 ? `Charge per Km : Rs. ${fmt2(normalizedBill.chargePerKm)} × ${fmt2(chargeableKms)}` : 'Charge per Km :'}
         </td>
         <td class="right">${amountRs(kmAmount)}</td>
         <td class="right">${amountPs(kmAmount)}</td>
@@ -334,36 +363,36 @@ function generateInvoiceHTML(bill) {
 
       <tr class="row-medium">
         <td colspan="2">
-          Charge per Hour : ${fmt2(totalHours)}
+          ${n(normalizedBill.chargePerHour) > 0 ? `Charge per Hour : Rs. ${fmt2(normalizedBill.chargePerHour)} × ${fmt2(totalHours)}` : 'Charge per Hour :'}
         </td>
-        <td></td>
-        <td></td>
+        <td class="right">${amountRs(hourAmount)}</td>
+        <td class="right">${amountPs(hourAmount)}</td>
       </tr>
 
       <tr class="row-medium">
         <td colspan="2">
-          Charge per Day : Rs. ${fmt2(normalizedBill.chargePerDay)}
+          ${n(normalizedBill.chargePerDay) > 0 ? (dayCount > 1 ? `Charge per Day : Rs. ${fmt2(normalizedBill.chargePerDay)} × ${dayCount} Days` : `Charge per Day : Rs. ${fmt2(normalizedBill.chargePerDay)}`) : 'Charge per Day :'}
         </td>
         <td class="right">${amountRs(dayAmount)}</td>
         <td class="right">${amountPs(dayAmount)}</td>
       </tr>
 
       <tr class="row-medium">
-        <td colspan="2">Toll Charges : Rs. ${fmt2(normalizedBill.tollCharges) || ''}</td>
+        <td colspan="2">Toll Charges : ${n(normalizedBill.tollCharges) > 0 ? `Rs. ${fmt2(normalizedBill.tollCharges)}` : ''}</td>
         <td class="right">${amountRs(normalizedBill.tollCharges)}</td>
         <td class="right">${amountPs(normalizedBill.tollCharges)}</td>
       </tr>
 
       <tr class="row-medium">
-        <td colspan="2">Night Halt Charges :</td>
+        <td colspan="2">Night Halt Charges : ${nightHaltAmount > 0 ? `Rs. ${fmt2(nightHaltAmount)}` : ''}</td>
         <td class="right">${amountRs(nightHaltAmount || '')}</td>
         <td class="right">${amountPs(nightHaltAmount || '')}</td>
       </tr>
 
       <tr class="row-medium">
-        <td colspan="2">Driver Bata :</td>
-        <td class="right">${amountRs(driverBataAmount || '')}</td>
-        <td class="right">${amountPs(driverBataAmount || '')}</td>
+        <td colspan="2">${bataAmount > 0 ? `Driver Bata : Rs. ${fmt2(bataAmount)} × ${bataCount}` : 'Driver Bata :'}</td>
+        <td class="right">${amountRs(driverBataTotal || '')}</td>
+        <td class="right">${amountPs(driverBataTotal || '')}</td>
       </tr>
 
       <tr class="row-medium">
@@ -409,8 +438,9 @@ function generateInvoiceHTML(bill) {
           Branch: Trichy Road, Coimbatore<br>
           UPI ID: srii94439143638@barodampay
         </td>
-        <td style="width:20%; text-align:center; vertical-align:top; padding:8px;">
-          <img src="https://res.cloudinary.com/ddhtwszqg/image/upload/q_auto/f_auto/v1776606392/QR_gzxpxv.png" alt="Payment QR" style="width:120px; height:120px; object-fit:contain; display:block; margin:auto;"/>
+        <td style="width:20%; text-align:center; vertical-align:top; padding:6px 8px;">
+          <div style="font-weight:bold; font-size:12px; margin-bottom:4px; text-align:center;">Scan to Pay</div>
+          <img src="https://res.cloudinary.com/ddhtwszqg/image/upload/q_auto/f_auto/v1776606392/QR_gzxpxv.png" alt="Payment QR" style="width:105px; height:105px; object-fit:contain; display:block; margin:auto;"/>
         </td>
         <td style="width:30%; padding:8px; vertical-align:top; text-align:center;">
           <div style="height:120px; border:1.5px solid black; display:flex; align-items:flex-start; justify-content:center;">

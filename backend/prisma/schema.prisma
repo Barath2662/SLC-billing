@@ -26,6 +26,9 @@ model Bill {
 
   // Customer Information
   customerName     String   @map("customer_name")
+  addressLine1     String?  @map("address_line_1")
+  addressLine2     String?  @map("address_line_2")
+  addressLine3     String?  @map("address_line_3")
   travelDetails    String?  @map("travel_details")
   gstin            String?
 
@@ -55,6 +58,7 @@ model Bill {
   tollCharges      Decimal? @map("toll_charges") @db.Decimal(10, 2)
   nightHaltCharges Decimal? @map("night_halt_charges") @db.Decimal(10, 2)
   driverBata       Decimal? @map("driver_bata") @db.Decimal(10, 2)
+  driverBataCount  Decimal? @map("driver_bata_count") @db.Decimal(10, 2)
   permitCharges    Decimal? @map("permit_charges") @db.Decimal(10, 2)
   otherExpenses    Decimal? @map("other_expenses") @db.Decimal(10, 2)
 
@@ -71,11 +75,14 @@ model Bill {
 }
 
 model Customer {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  gstin     String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id           Int      @id @default(autoincrement())
+  name         String   @unique
+  addressLine1 String?  @map("address_line_1")
+  addressLine2 String?  @map("address_line_2")
+  addressLine3 String?  @map("address_line_3")
+  gstin        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("customers")
 }
