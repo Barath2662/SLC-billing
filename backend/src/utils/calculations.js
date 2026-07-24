@@ -1,12 +1,16 @@
 function calculateTotalKms(startingKms, closingKms) {
-  if (startingKms == null || closingKms == null) return 0;
-  return Math.max(0, Number(closingKms) - Number(startingKms));
+  if (startingKms == null || closingKms == null || startingKms === '' || closingKms === '') return 0;
+  const start = Number(startingKms);
+  const close = Number(closingKms);
+  if (isNaN(start) || isNaN(close)) return 0;
+  return Math.max(0, close - start);
 }
 
 function calculateDayCount(tripDate, tripEndDate) {
   if (!tripDate || !tripEndDate) return 1;
   const start = new Date(tripDate);
   const end = new Date(tripEndDate);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return 1;
   const diff = Math.round((end - start) / (1000 * 60 * 60 * 24));
   return Math.max(1, diff + 1);
 }
@@ -15,27 +19,46 @@ function calculateTotalHours(startingTime, closingTime, multipleDays = false, tr
   let timeHours = 0;
   if (startingTime && closingTime) {
     const parseTime = (t) => {
+      if (typeof t !== 'string') return 0;
       const parts = t.split(':');
-      return Number(parts[0]) + Number(parts[1]) / 60;
+      if (parts.length < 2) return 0;
+      const h = Number(parts[0]);
+      const m = Number(parts[1]);
+      if (isNaN(h) || isNaN(m)) return 0;
+      return h + m / 60;
     };
     let diff = parseTime(closingTime) - parseTime(startingTime);
+    if (isNaN(diff)) diff = 0;
     if (diff < 0) diff += 24;
     timeHours = diff;
   }
   if (multipleDays && tripDate && tripEndDate) {
-    const daysDiff = Math.max(0, Math.round((new Date(tripEndDate) - new Date(tripDate)) / (1000 * 60 * 60 * 24)));
-    return Math.round((daysDiff * 24 + timeHours) * 100) / 100;
+    const dStart = new Date(tripDate);
+    const dEnd = new Date(tripEndDate);
+    if (!isNaN(dStart.getTime()) && !isNaN(dEnd.getTime())) {
+      const daysDiff = Math.max(0, Math.round((dEnd - dStart) / (1000 * 60 * 60 * 24)));
+      return Math.round((daysDiff * 24 + timeHours) * 100) / 100;
+    }
   }
-  return Math.round(timeHours * 100) / 100;
+  const result = Math.round(timeHours * 100) / 100;
+  return isNaN(result) ? 0 : result;
 }
 
 function calculateChargeableKms(totalKms, freeKms) {
-  return Math.max(0, Number(totalKms || 0) - Number(freeKms || 0));
+  const tot = Number(totalKms || 0);
+  const free = Number(freeKms || 0);
+  const safeTot = isNaN(tot) ? 0 : tot;
+  const safeFree = isNaN(free) ? 0 : free;
+  return Math.max(0, safeTot - safeFree);
 }
 
 function calculateTotalAmount(data) {
   let total = 0;
-  const n = (v) => v ? Number(v) : 0;
+  const n = (v) => {
+    if (v == null || v === '') return 0;
+    const num = Number(v);
+    return isNaN(num) ? 0 : num;
+  };
 
   const dayCount = data.multipleDays ? calculateDayCount(data.tripDate, data.tripEndDate) : 1;
   const chargeableKms = calculateChargeableKms(data.totalKms, data.freeKms);
@@ -50,11 +73,17 @@ function calculateTotalAmount(data) {
   total += n(data.permitCharges);
   total += n(data.otherExpenses);
 
-  return Math.round(total * 100) / 100;
+  const res = Math.round(total * 100) / 100;
+  return isNaN(res) ? 0 : res;
 }
 
 function calculatePayableAmount(totalAmount, advance) {
-  return Math.max(0, Math.round((Number(totalAmount || 0) - Number(advance || 0)) * 100) / 100);
+  const tot = Number(totalAmount || 0);
+  const adv = Number(advance || 0);
+  const safeTot = isNaN(tot) ? 0 : tot;
+  const safeAdv = isNaN(adv) ? 0 : adv;
+  const res = Math.max(0, Math.round((safeTot - safeAdv) * 100) / 100);
+  return isNaN(res) ? 0 : res;
 }
 
 function formatHours(decimalHours) {

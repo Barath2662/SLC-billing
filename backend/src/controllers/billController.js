@@ -50,6 +50,18 @@ const normalizeBillResponse = (bill) => {
   };
 };
 
+const parseOptionalNumber = (val, defaultVal = null) => {
+  if (val === null || val === undefined || val === '') return defaultVal;
+  const num = Number(val);
+  return isNaN(num) ? defaultVal : num;
+};
+
+const parseOptionalDate = (val, defaultVal = null) => {
+  if (!val || val === '') return defaultVal;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? defaultVal : d;
+};
+
 // Create a new bill
 const createBill = async (req, res) => {
   try {
@@ -59,64 +71,105 @@ const createBill = async (req, res) => {
     }
 
     const data = req.body;
-    const billNumber = await generateBillNumber();
 
-    // Auto calculations
     const multipleDays = data.multipleDays === true || data.multipleDays === 'true';
-    const totalKms = calculateTotalKms(data.startingKms, data.closingKms);
-    const totalHours = calculateTotalHours(data.startingTime, data.closingTime, multipleDays, data.tripDate, data.tripEndDate);
-    const chargeableKms = calculateChargeableKms(totalKms, data.freeKms);
+    const tripDate = parseOptionalDate(data.tripDate);
+    const tripEndDate = parseOptionalDate(data.tripEndDate);
+    const date = parseOptionalDate(data.date, new Date());
+
+    const startingKms = parseOptionalNumber(data.startingKms);
+    const closingKms = parseOptionalNumber(data.closingKms);
+    const totalKms = calculateTotalKms(startingKms, closingKms);
+
+    const totalHours = calculateTotalHours(data.startingTime, data.closingTime, multipleDays, tripDate, tripEndDate);
+    const freeKms = parseOptionalNumber(data.freeKms);
+    const chargeableKms = calculateChargeableKms(totalKms, freeKms);
+    const driverBataCount = parseOptionalNumber(data.driverBataCount, 1);
 
     const billData = {
       ...data,
       multipleDays,
+      tripDate,
+      tripEndDate,
+      startingKms,
+      closingKms,
       totalKms,
       totalHours,
+      freeKms,
       chargeableKms,
-      driverBataCount: data.driverBataCount != null ? Number(data.driverBataCount) : 1,
+      driverBataCount,
+      chargePerKm: parseOptionalNumber(data.chargePerKm),
+      chargePerHour: parseOptionalNumber(data.chargePerHour),
+      chargePerDay: parseOptionalNumber(data.chargePerDay),
+      tollCharges: parseOptionalNumber(data.tollCharges),
+      nightHaltCharges: parseOptionalNumber(data.nightHaltCharges),
+      driverBata: parseOptionalNumber(data.driverBata),
+      permitCharges: parseOptionalNumber(data.permitCharges),
+      otherExpenses: parseOptionalNumber(data.otherExpenses),
     };
-    const totalAmount = data.totalAmount != null ? Number(data.totalAmount) : calculateTotalAmount(billData);
-    const advance = data.advance != null && data.advance !== '' ? Number(data.advance) : 0;
-    const payableAmount = calculatePayableAmount(totalAmount, advance);
-    const rupeesInWords = data.rupeesInWords || numberToWords(totalAmount);
 
-    const bill = await prisma.bill.create({
-      data: {
-        billNumber,
-        customerName: data.customerName,
-        addressLine1: data.addressLine1 || null,
-        addressLine2: data.addressLine2 || null,
-        addressLine3: data.addressLine3 || null,
-        travelDetails: data.travelDetails || null,
-        gstin: data.gstin || null,
-        date: data.date ? new Date(data.date) : new Date(),
-        vehicleNumber: data.vehicleNumber || null,
-        multipleDays: data.multipleDays === true || data.multipleDays === 'true',
-        tripDate: data.tripDate ? new Date(data.tripDate) : null,
-        tripEndDate: data.tripEndDate ? new Date(data.tripEndDate) : null,
-        startingTime: data.startingTime || null,
-        closingTime: data.closingTime || null,
-        totalHours,
-        startingKms: data.startingKms != null ? Number(data.startingKms) : null,
-        closingKms: data.closingKms != null ? Number(data.closingKms) : null,
-        totalKms,
-        chargePerKm: data.chargePerKm != null ? Number(data.chargePerKm) : null,
-        chargePerHour: data.chargePerHour != null ? Number(data.chargePerHour) : null,
-        freeKms: data.freeKms != null ? Number(data.freeKms) : null,
-        chargeableKms,
-        chargePerDay: data.chargePerDay != null ? Number(data.chargePerDay) : null,
-        tollCharges: data.tollCharges != null ? Number(data.tollCharges) : null,
-        nightHaltCharges: data.nightHaltCharges != null ? Number(data.nightHaltCharges) : null,
-        driverBata: data.driverBata != null ? Number(data.driverBata) : null,
-        driverBataCount: data.driverBataCount != null ? Number(data.driverBataCount) : 1,
-        permitCharges: data.permitCharges != null ? Number(data.permitCharges) : null,
-        otherExpenses: data.otherExpenses != null ? Number(data.otherExpenses) : null,
-        totalAmount,
-        advance: advance > 0 ? advance : null,
-        payableAmount,
-        rupeesInWords,
-      },
-    });
+    const inputTotalAmount = parseOptionalNumber(data.totalAmount);
+    const computedTotalAmount = calculateTotalAmount(billData);
+    const totalAmount = inputTotalAmount !== null ? inputTotalAmount : computedTotalAmount;
+
+    const advance = parseOptionalNumber(data.advance, 0);
+    const payableAmount = calculatePayableAmount(totalAmount, advance);
+    const rupeesInWords = data.rupeesInWords || numberToWords(totalAmount) || 'Zero Rupees Only';
+
+    let bill;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      const billNumber = await generateBillNumber();
+      try {
+        bill = await prisma.bill.create({
+          data: {
+            billNumber,
+            customerName: data.customerName,
+            addressLine1: data.addressLine1 || null,
+            addressLine2: data.addressLine2 || null,
+            addressLine3: data.addressLine3 || null,
+            travelDetails: data.travelDetails || null,
+            gstin: data.gstin || null,
+            date,
+            vehicleNumber: data.vehicleNumber || null,
+            multipleDays,
+            tripDate,
+            tripEndDate,
+            startingTime: data.startingTime || null,
+            closingTime: data.closingTime || null,
+            totalHours,
+            startingKms,
+            closingKms,
+            totalKms,
+            chargePerKm: billData.chargePerKm,
+            chargePerHour: billData.chargePerHour,
+            freeKms,
+            chargeableKms,
+            chargePerDay: billData.chargePerDay,
+            tollCharges: billData.tollCharges,
+            nightHaltCharges: billData.nightHaltCharges,
+            driverBata: billData.driverBata,
+            driverBataCount,
+            permitCharges: billData.permitCharges,
+            otherExpenses: billData.otherExpenses,
+            totalAmount,
+            advance: advance > 0 ? advance : null,
+            payableAmount,
+            rupeesInWords,
+          },
+        });
+        break;
+      } catch (dbErr) {
+        if (dbErr.code === 'P2002' && dbErr.meta?.target?.includes('bill_number') && attempts < maxAttempts) {
+          console.warn(`Bill number collision on attempt ${attempts}, retrying...`);
+          continue;
+        }
+        throw dbErr;
+      }
+    }
 
     res.status(201).json({ message: 'Bill created successfully.', bill });
 
@@ -141,7 +194,7 @@ const createBill = async (req, res) => {
     }
   } catch (err) {
     console.error('Create bill error:', err);
-    res.status(500).json({ error: 'Internal server error.' });
+    res.status(500).json({ error: err.message || 'Internal server error.' });
   }
 };
 
@@ -207,45 +260,46 @@ const updateBill = async (req, res) => {
     }
 
     // Recalculate
-    const startingKms = data.startingKms != null ? Number(data.startingKms) : Number(existing.startingKms);
-    const closingKms = data.closingKms != null ? Number(data.closingKms) : Number(existing.closingKms);
+    const startingKms = data.startingKms !== undefined ? parseOptionalNumber(data.startingKms) : parseOptionalNumber(existing.startingKms);
+    const closingKms = data.closingKms !== undefined ? parseOptionalNumber(data.closingKms) : parseOptionalNumber(existing.closingKms);
     const updatedMultipleDays = data.multipleDays !== undefined
       ? (data.multipleDays === true || data.multipleDays === 'true')
       : existing.multipleDays;
-    const updatedTripDate = data.tripDate ? new Date(data.tripDate) : existing.tripDate;
-    const updatedTripEndDate = data.tripEndDate ? new Date(data.tripEndDate) : existing.tripEndDate;
+    const updatedTripDate = data.tripDate !== undefined ? parseOptionalDate(data.tripDate) : parseOptionalDate(existing.tripDate);
+    const updatedTripEndDate = data.tripEndDate !== undefined ? parseOptionalDate(data.tripEndDate) : parseOptionalDate(existing.tripEndDate);
     const totalKms = calculateTotalKms(startingKms, closingKms);
     const totalHours = calculateTotalHours(
-      data.startingTime || existing.startingTime,
-      data.closingTime || existing.closingTime,
+      data.startingTime !== undefined ? data.startingTime : existing.startingTime,
+      data.closingTime !== undefined ? data.closingTime : existing.closingTime,
       updatedMultipleDays, updatedTripDate, updatedTripEndDate
     );
 
-    const updatedFreeKms = data.freeKms != null ? Number(data.freeKms) : Number(existing.freeKms || 0);
+    const updatedFreeKms = data.freeKms !== undefined ? parseOptionalNumber(data.freeKms) : parseOptionalNumber(existing.freeKms);
     const chargeableKms = calculateChargeableKms(totalKms, updatedFreeKms);
 
     const billData = {
-      chargePerKm: data.chargePerKm ?? existing.chargePerKm,
-      chargePerHour: data.chargePerHour ?? existing.chargePerHour,
+      chargePerKm: data.chargePerKm !== undefined ? parseOptionalNumber(data.chargePerKm) : parseOptionalNumber(existing.chargePerKm),
+      chargePerHour: data.chargePerHour !== undefined ? parseOptionalNumber(data.chargePerHour) : parseOptionalNumber(existing.chargePerHour),
       freeKms: updatedFreeKms,
       chargeableKms,
-      chargePerDay: data.chargePerDay ?? existing.chargePerDay,
-      tollCharges: data.tollCharges ?? existing.tollCharges,
+      chargePerDay: data.chargePerDay !== undefined ? parseOptionalNumber(data.chargePerDay) : parseOptionalNumber(existing.chargePerDay),
+      tollCharges: data.tollCharges !== undefined ? parseOptionalNumber(data.tollCharges) : parseOptionalNumber(existing.tollCharges),
       multipleDays: updatedMultipleDays,
       tripDate: updatedTripDate,
       tripEndDate: updatedTripEndDate,
       totalKms,
       totalHours,
-      nightHaltCharges: data.nightHaltCharges ?? existing.nightHaltCharges,
-      driverBata: data.driverBata ?? existing.driverBata,
-      driverBataCount: data.driverBataCount ?? existing.driverBataCount,
-      permitCharges: data.permitCharges ?? existing.permitCharges,
-      otherExpenses: data.otherExpenses ?? existing.otherExpenses,
+      nightHaltCharges: data.nightHaltCharges !== undefined ? parseOptionalNumber(data.nightHaltCharges) : parseOptionalNumber(existing.nightHaltCharges),
+      driverBata: data.driverBata !== undefined ? parseOptionalNumber(data.driverBata) : parseOptionalNumber(existing.driverBata),
+      driverBataCount: data.driverBataCount !== undefined ? parseOptionalNumber(data.driverBataCount, 1) : parseOptionalNumber(existing.driverBataCount, 1),
+      permitCharges: data.permitCharges !== undefined ? parseOptionalNumber(data.permitCharges) : parseOptionalNumber(existing.permitCharges),
+      otherExpenses: data.otherExpenses !== undefined ? parseOptionalNumber(data.otherExpenses) : parseOptionalNumber(existing.otherExpenses),
     };
-    const totalAmount = data.totalAmount != null ? Number(data.totalAmount) : calculateTotalAmount(billData);
-    const advance = data.advance != null && data.advance !== '' ? Number(data.advance) : (existing.advance != null ? Number(existing.advance) : 0);
+    const inputTotalAmount = data.totalAmount !== undefined ? parseOptionalNumber(data.totalAmount) : null;
+    const totalAmount = inputTotalAmount !== null ? inputTotalAmount : calculateTotalAmount(billData);
+    const advance = data.advance !== undefined ? parseOptionalNumber(data.advance, 0) : parseOptionalNumber(existing.advance, 0);
     const payableAmount = calculatePayableAmount(totalAmount, advance);
-    const rupeesInWords = data.rupeesInWords || numberToWords(totalAmount);
+    const rupeesInWords = data.rupeesInWords || numberToWords(totalAmount) || 'Zero Rupees Only';
 
     const bill = await prisma.bill.update({
       where: { billNumber },
@@ -256,28 +310,28 @@ const updateBill = async (req, res) => {
         addressLine3: data.addressLine3 !== undefined ? (data.addressLine3 || null) : existing.addressLine3,
         travelDetails: data.travelDetails ?? existing.travelDetails,
         gstin: data.gstin ?? existing.gstin,
-        date: data.date ? new Date(data.date) : existing.date,
+        date: data.date !== undefined ? (parseOptionalDate(data.date) || existing.date) : existing.date,
         vehicleNumber: data.vehicleNumber ?? existing.vehicleNumber,
-        multipleDays: data.multipleDays !== undefined ? (data.multipleDays === true || data.multipleDays === 'true') : existing.multipleDays,
-        tripDate: data.tripDate ? new Date(data.tripDate) : existing.tripDate,
-        tripEndDate: data.tripEndDate ? new Date(data.tripEndDate) : existing.tripEndDate,
-        startingTime: data.startingTime ?? existing.startingTime,
-        closingTime: data.closingTime ?? existing.closingTime,
+        multipleDays: updatedMultipleDays,
+        tripDate: updatedTripDate,
+        tripEndDate: updatedTripEndDate,
+        startingTime: data.startingTime !== undefined ? (data.startingTime || null) : existing.startingTime,
+        closingTime: data.closingTime !== undefined ? (data.closingTime || null) : existing.closingTime,
         totalHours,
         startingKms,
         closingKms,
         totalKms,
-        chargePerKm: data.chargePerKm != null ? Number(data.chargePerKm) : existing.chargePerKm,
-        chargePerHour: data.chargePerHour != null ? Number(data.chargePerHour) : existing.chargePerHour,
+        chargePerKm: billData.chargePerKm,
+        chargePerHour: billData.chargePerHour,
         freeKms: updatedFreeKms,
         chargeableKms,
-        chargePerDay: data.chargePerDay != null ? Number(data.chargePerDay) : existing.chargePerDay,
-        tollCharges: data.tollCharges != null ? Number(data.tollCharges) : existing.tollCharges,
-        nightHaltCharges: data.nightHaltCharges != null ? Number(data.nightHaltCharges) : existing.nightHaltCharges,
-        driverBata: data.driverBata != null ? Number(data.driverBata) : existing.driverBata,
-        driverBataCount: data.driverBataCount != null ? Number(data.driverBataCount) : existing.driverBataCount,
-        permitCharges: data.permitCharges != null ? Number(data.permitCharges) : existing.permitCharges,
-        otherExpenses: data.otherExpenses != null ? Number(data.otherExpenses) : existing.otherExpenses,
+        chargePerDay: billData.chargePerDay,
+        tollCharges: billData.tollCharges,
+        nightHaltCharges: billData.nightHaltCharges,
+        driverBata: billData.driverBata,
+        driverBataCount: billData.driverBataCount,
+        permitCharges: billData.permitCharges,
+        otherExpenses: billData.otherExpenses,
         totalAmount,
         advance: advance > 0 ? advance : null,
         payableAmount,
@@ -288,7 +342,7 @@ const updateBill = async (req, res) => {
     res.json({ message: 'Bill updated successfully.', bill });
   } catch (err) {
     console.error('Update bill error:', err);
-    res.status(500).json({ error: 'Internal server error.' });
+    res.status(500).json({ error: err.message || 'Internal server error.' });
   }
 };
 
