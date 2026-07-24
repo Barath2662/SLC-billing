@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/app.js",
     "build": "npm install && npx prisma generate",
-    "start": "node src/app.js",
+    "start": "npx prisma generate && node src/app.js",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:seed": "node prisma/seed.js"
@@ -21,10 +21,10 @@
     "express-validator": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^4.2.1",
+    "prisma": "^5.22.0",
     "puppeteer-core": "^24.41.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7",
-    "prisma": "^5.22.0"
+    "nodemon": "^3.1.7"
   }
 }
