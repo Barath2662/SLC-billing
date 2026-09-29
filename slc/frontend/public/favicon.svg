@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="45" fill="#1a237e"/>
+  <text x="50" y="40" text-anchor="middle" fill="white" font-size="16" font-weight="bold" font-family="Arial">SLC</text>
+  <text x="50" y="65" text-anchor="middle" fill="#c5cae9" font-size="8" font-family="Arial">BILLING</text>
+</svg>
