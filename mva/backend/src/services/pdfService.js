@@ -274,12 +274,12 @@ function generateInvoiceHTML(bill) {
 
     <table class="no-border">
       <tr class="row-medium">
-        <td class="header-title">SRII LAKSHMI CAB</td>
+        <td class="header-title">MVA TRAVELS</td>
       </tr>
       <tr class="row-tight">
         <td class="header-sub">
           5/12-AB, 5th Street East, Nanjappa Nagar, Boat house West, Singanallur,<br/>
-          Coimbatore-641005 | Email: cabsriilakshmi@gmail.com
+          Coimbatore-641005
         </td>
       </tr>
       <tr class="row-tight">
@@ -429,22 +429,12 @@ function generateInvoiceHTML(bill) {
 
     <table class="footer">
       <tr>
-        <td style="width:50%; vertical-align:top; padding:8px;">
-          <b>BANK DETAILS</b><br><br>
-          ACCOUNT HOLDER: SRII LAKSHMI CAB<br>
-          Account number: 35530200000638<br>
-          Bank name: BANK OF BARODA<br>
-          IFSC CODE: BARB0TRICOI<br>
-          Branch: Trichy Road, Coimbatore<br>
-          UPI ID: srii94439143638@barodampay
-        </td>
-        <td style="width:20%; text-align:center; vertical-align:top; padding:6px 8px;">
-          <div style="font-weight:bold; font-size:12px; margin-bottom:4px; text-align:center;">Scan to Pay</div>
-          <img src="https://res.cloudinary.com/ddhtwszqg/image/upload/q_auto/f_auto/v1776606392/QR_gzxpxv.png" alt="Payment QR" style="width:105px; height:105px; object-fit:contain; display:block; margin:auto;"/>
+        <td style="width:70%; vertical-align:top; padding:8px;">
+          <!-- Bank details removed -->
         </td>
         <td style="width:30%; padding:8px; vertical-align:top; text-align:center;">
           <div style="height:120px; border:1.5px solid black; display:flex; align-items:flex-start; justify-content:center;">
-            <span style="margin-top:6px; font-weight:bold;">For SRII LAKSHMI CAB</span>
+            <span style="margin-top:6px; font-weight:bold;">For MVA TRAVELS</span>
           </div>
         </td>
       </tr>

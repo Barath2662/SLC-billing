@@ -1,7 +1,7 @@
 {
   "name": "srii-lakshmi-cab-billing-backend",
   "version": "1.0.0",
-  "description": "Backend for Srii Lakshmi Cab Billing System",
+  "description": "Backend for MVA Travels Billing System",
   "main": "src/app.js",
   "scripts": {
     "dev": "nodemon src/app.js",

@@ -1,4 +1,4 @@
-# Srii Lakshmi Cab — Billing System
+# MVA Travels — Billing System
 
 ## Complete Project Documentation
 
@@ -27,7 +27,7 @@
 
 ## 🎯 Project Overview
 
-**Srii Lakshmi Cab Billing System** is a full-stack web application designed to digitize the paper-based billing process for a taxi/cab service. The system allows operators to create, manage, search, and generate professional PDF invoices for completed trips.
+**MVA Travels Billing System** is a full-stack web application designed to digitize the paper-based billing process for a taxi/cab service. The system allows operators to create, manage, search, and generate professional PDF invoices for completed trips.
 
 ### Key Capabilities
 

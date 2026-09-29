@@ -30,9 +30,9 @@ export default function Navbar() {
           {/* Logo */}
           <Link to="/dashboard" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-              <span className="text-primary-900 font-bold text-xs">SLC</span>
+              <span className="text-primary-900 font-bold text-xs">MVA</span>
             </div>
-            <span className="font-bold text-lg hidden sm:block">Srii Lakshmi Cab</span>
+            <span className="font-bold text-lg hidden sm:block">MVA Travels</span>
           </Link>
 
           {/* Desktop Navigation */}

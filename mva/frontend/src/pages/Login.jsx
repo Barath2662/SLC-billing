@@ -34,9 +34,9 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl">
-            <span className="text-primary-900 font-bold text-2xl">SLC</span>
+            <span className="text-primary-900 font-bold text-2xl">MVA</span>
           </div>
-          <h1 className="text-3xl font-bold text-white">Srii Lakshmi Cab</h1>
+          <h1 className="text-3xl font-bold text-white">MVA Travels</h1>
           <p className="text-primary-200 mt-1">Billing Management System</p>
         </div>
 
@@ -79,7 +79,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-primary-300 text-xs mt-6">
-          &copy; {new Date().getFullYear()} Srii Lakshmi Cab. All rights reserved.
+          &copy; {new Date().getFullYear()} MVA Travels. All rights reserved.
         </p>
       </div>
     </div>

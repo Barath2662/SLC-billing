@@ -38,7 +38,7 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">Welcome to Srii Lakshmi Cab Billing System</p>
+          <p className="text-gray-500 text-sm mt-1">Welcome to MVA Travels Billing System</p>
         </div>
         <div className="flex space-x-3 mt-4 sm:mt-0">
           <Link to="/create-bill" className="btn-primary flex items-center space-x-2">

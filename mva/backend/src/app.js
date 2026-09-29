@@ -35,7 +35,7 @@ app.use('/api/bills', billRoutes);
 app.get('/api/health', async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: 'ok', db: 'connected', message: 'Srii Lakshmi Cab Billing API is running' });
+    res.json({ status: 'ok', db: 'connected', message: 'MVA Travels Billing API is running' });
   } catch (err) {
     res.status(503).json({ status: 'degraded', db: 'unavailable', message: 'Database is unavailable' });
   }
