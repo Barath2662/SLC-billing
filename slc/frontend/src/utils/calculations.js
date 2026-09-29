@@ -1,111 +1,112 @@
-function calculateTotalKms(startingKms, closingKms) {
-  if (startingKms == null || closingKms == null || startingKms === '' || closingKms === '') return 0;
-  const start = Number(startingKms);
-  const close = Number(closingKms);
-  if (isNaN(start) || isNaN(close)) return 0;
-  return Math.max(0, close - start);
+export function calculateTotalKms(startingKms, closingKms) {
+  const s = parseFloat(startingKms) || 0;
+  const c = parseFloat(closingKms) || 0;
+  return Math.max(0, c - s);
 }
 
-function calculateDayCount(tripDate, tripEndDate) {
+// Returns number of days (inclusive) between two date strings, minimum 1
+export function calculateDayCount(tripDate, tripEndDate) {
   if (!tripDate || !tripEndDate) return 1;
   const start = new Date(tripDate);
   const end = new Date(tripEndDate);
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) return 1;
   const diff = Math.round((end - start) / (1000 * 60 * 60 * 24));
   return Math.max(1, diff + 1);
 }
 
-function calculateTotalHours(startingTime, closingTime, multipleDays = false, tripDate = null, tripEndDate = null) {
+// If multiple days: total hours = (daysDiff × 24) + time hours on last day
+export function calculateTotalHours(startingTime, closingTime, multipleDays = false, tripDate = null, tripEndDate = null) {
   let timeHours = 0;
   if (startingTime && closingTime) {
     const parseTime = (t) => {
-      if (typeof t !== 'string') return 0;
-      const parts = t.split(':');
-      if (parts.length < 2) return 0;
-      const h = Number(parts[0]);
-      const m = Number(parts[1]);
-      if (isNaN(h) || isNaN(m)) return 0;
+      const [h, m] = t.split(':').map(Number);
       return h + m / 60;
     };
     let diff = parseTime(closingTime) - parseTime(startingTime);
-    if (isNaN(diff)) diff = 0;
     if (diff < 0) diff += 24;
     timeHours = diff;
   }
   if (multipleDays && tripDate && tripEndDate) {
-    const dStart = new Date(tripDate);
-    const dEnd = new Date(tripEndDate);
-    if (!isNaN(dStart.getTime()) && !isNaN(dEnd.getTime())) {
-      const daysDiff = Math.max(0, Math.round((dEnd - dStart) / (1000 * 60 * 60 * 24)));
-      return Math.round((daysDiff * 24 + timeHours) * 100) / 100;
-    }
+    const daysDiff = Math.max(0, Math.round((new Date(tripEndDate) - new Date(tripDate)) / (1000 * 60 * 60 * 24)));
+    return Math.round((daysDiff * 24 + timeHours) * 100) / 100;
   }
-  const result = Math.round(timeHours * 100) / 100;
-  return isNaN(result) ? 0 : result;
+  return Math.round(timeHours * 100) / 100;
 }
 
-function calculateChargeableKms(totalKms, freeKms) {
-  const tot = Number(totalKms || 0);
-  const free = Number(freeKms || 0);
-  const safeTot = isNaN(tot) ? 0 : tot;
-  const safeFree = isNaN(free) ? 0 : free;
-  return Math.max(0, safeTot - safeFree);
+export function calculateChargeableKms(totalKms, freeKms) {
+  return Math.max(0, (parseFloat(totalKms) || 0) - (parseFloat(freeKms) || 0));
 }
 
-function calculateTotalAmount(data) {
-  let subTotal = 0;
-  const n = (v) => {
-    if (v == null || v === '') return 0;
-    const num = Number(v);
-    return isNaN(num) ? 0 : num;
-  };
+export function calculatePayableAmount(totalAmount, advance) {
+  return Math.max(0, Math.round((parseFloat(totalAmount || 0) - parseFloat(advance || 0)) * 100) / 100);
+}
+
+export function calculateTotalAmount(data) {
+  let total = 0;
+  const n = (v) => parseFloat(v) || 0;
 
   const dayCount = data.multipleDays ? calculateDayCount(data.tripDate, data.tripEndDate) : 1;
   const chargeableKms = calculateChargeableKms(data.totalKms, data.freeKms);
   const bataCount = data.driverBataCount != null && data.driverBataCount !== '' ? n(data.driverBataCount) : 1;
 
-  subTotal += chargeableKms * n(data.chargePerKm);
-  subTotal += n(data.totalHours) * n(data.chargePerHour);
-  subTotal += n(data.chargePerDay) * dayCount;
-  subTotal += n(data.tollCharges);
-  subTotal += n(data.nightHaltCharges);
-  subTotal += n(data.driverBata) * (bataCount || 1);
-  subTotal += n(data.permitCharges);
-  subTotal += n(data.otherExpenses);
+  total += chargeableKms * n(data.chargePerKm);
+  total += n(data.totalHours) * n(data.chargePerHour);
+  total += n(data.chargePerDay) * dayCount;
+  total += n(data.tollCharges);
+  total += n(data.nightHaltCharges);
+  total += n(data.driverBata) * (bataCount || 1);
+  total += n(data.permitCharges);
+  total += n(data.otherExpenses);
 
-  // 2.5% CGST and 2.5% SGST = 5% Total GST
-  const gstAmount = subTotal * 0.05;
-  const total = subTotal + gstAmount;
+  const subTotalAmount = Math.round(total * 100) / 100;
+  const cgstAmount = Math.round((subTotalAmount * 0.025) * 100) / 100;
+  const sgstAmount = Math.round((subTotalAmount * 0.025) * 100) / 100;
+  
+  const rawTotal = subTotalAmount + cgstAmount + sgstAmount;
+  const roundedTotal = Math.round(rawTotal);
 
-  // Perform rounding off for paisa to rupees
-  const res = Math.round(total);
-  return isNaN(res) ? 0 : res;
+  return roundedTotal;
 }
 
-function calculatePayableAmount(totalAmount, advance) {
-  const tot = Number(totalAmount || 0);
-  const adv = Number(advance || 0);
-  const safeTot = isNaN(tot) ? 0 : tot;
-  const safeAdv = isNaN(adv) ? 0 : adv;
-  const res = Math.max(0, Math.round((safeTot - safeAdv) * 100) / 100);
-  return isNaN(res) ? 0 : res;
+export function numberToWords(num) {
+  if (!num || num === 0) return 'Zero Rupees Only';
+
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  function convertGroup(n) {
+    if (n === 0) return '';
+    if (n < 20) return ones[n];
+    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+    return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + convertGroup(n % 100) : '');
+  }
+
+  const intPart = Math.floor(Math.abs(num));
+  const decPart = Math.round((Math.abs(num) - intPart) * 100);
+
+  let result = '';
+  if (intPart >= 10000000) result += convertGroup(Math.floor(intPart / 10000000)) + ' Crore ';
+  if (intPart >= 100000) result += convertGroup(Math.floor((intPart % 10000000) / 100000)) + ' Lakh ';
+  if (intPart >= 1000) result += convertGroup(Math.floor((intPart % 100000) / 1000)) + ' Thousand ';
+  if (intPart >= 100) {
+    result += convertGroup(Math.floor((intPart % 1000) / 100)) + ' Hundred ';
+    if (intPart % 100 > 0) result += 'and ';
+  }
+  if (intPart % 100 > 0 || intPart === 0) result += convertGroup(intPart % 100);
+
+  result = result.trim() + ' Rupees';
+  if (decPart > 0) result += ' and ' + convertGroup(decPart) + ' Paise';
+  result += ' Only';
+  return result.replace(/\s+/g, ' ').trim();
 }
 
-function formatHours(decimalHours) {
-  if (!decimalHours || decimalHours === 0) return '0';
-  const hours = Math.floor(Number(decimalHours));
-  const mins = Math.round((Number(decimalHours) - hours) * 60);
-  if (hours === 0) return `${mins} mins`;
-  if (mins === 0) return `${hours} hrs`;
-  return `${hours} hrs ${mins} mins`;
+export function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-module.exports = {
-  calculateTotalKms,
-  calculateDayCount,
-  calculateTotalHours,
-  calculateChargeableKms,
-  calculateTotalAmount,
-  calculatePayableAmount,
-  formatHours,
-};
+export function formatCurrency(amount) {
+  if (amount == null) return '₹ 0.00';
+  return `₹ ${Number(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
