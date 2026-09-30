@@ -447,7 +447,8 @@ function generateInvoiceHTML(bill) {
       </tr>
 
       <tr class="row-medium">
-        <td colspan="2" class="center bold">PAYABLE AMOUNT</td>
+        <td class="left bold" style="vertical-align: middle; padding-left: 8px;">HSN Code: 996601</td>
+        <td class="right bold" style="vertical-align: middle; padding-right: 12px;">PAYABLE AMOUNT</td>
         <td class="right bold">${amountRs(payableAmount)}</td>
         <td class="right bold">${amountPs(payableAmount)}</td>
       </tr>
